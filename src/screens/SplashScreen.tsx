@@ -2,7 +2,7 @@ import { ActivityIndicator, Image, SafeAreaView, StyleSheet, Text, View } from '
 
 import { COLORS, FONT_SIZE, SPACING } from '../constants/theme';
 
-const appLogo = require('../../assets/icon.png');
+const appLogo = require('../../assets/logo.png');
 
 /**
  * Pantalla de carga inicial.

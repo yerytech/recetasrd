@@ -1,102 +1,160 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
-import { useMemo } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CategoryItem } from '../components/CategoryItem';
-import { RecipeCard } from '../components/RecipeCard';
-import { RECIPE_CATEGORIES } from '../constants/categories';
-import { COLORS, FONT_SIZE, LAYOUT, SPACING } from '../constants/theme';
-import { useRecipes } from '../hooks/useRecipes';
+import { BottomTabBar, HomeTabKey } from '../components/BottomTabBar';
+import { CategoryCard } from '../components/CategoryCard';
+import { FloatingButton } from '../components/FloatingButton';
+import { RecipeListItem } from '../components/RecipeListItem';
+import { SearchInput } from '../components/SearchInput';
 import { AppTabsParamList, RootStackParamList } from '../navigation/types';
-import { Recipe } from '../types';
 
 type Props = BottomTabScreenProps<AppTabsParamList, 'HomeTab'>;
 
+interface Category {
+  id: string;
+  name: string;
+  imageUrl: string;
+}
+
+interface PopularRecipe {
+  id: string;
+  name: string;
+  rating: number;
+  imageUrl: string;
+  isFavorite?: boolean;
+}
+
+const CATEGORIES: Category[] = [
+  {
+    id: 'cat-1',
+    name: 'Desayunos',
+    imageUrl:
+      'https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=200&q=80',
+  },
+  {
+    id: 'cat-2',
+    name: 'Almuerzos',
+    imageUrl:
+      'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=200&q=80',
+  },
+  {
+    id: 'cat-3',
+    name: 'Cena',
+    imageUrl:
+      'https://images.unsplash.com/photo-1518492104633-130d0cc84637?auto=format&fit=crop&w=200&q=80',
+  },
+  {
+    id: 'cat-4',
+    name: 'Postres',
+    imageUrl:
+      'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=200&q=80',
+  },
+];
+
+const POPULAR_RECIPES: PopularRecipe[] = [
+  {
+    id: 'receta-1',
+    name: 'Mangú con los 3 golpes',
+    rating: 4.6,
+    imageUrl:
+      'https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=200&q=80',
+    isFavorite: true,
+  },
+  {
+    id: 'receta-2',
+    name: 'Sancocho Dominicano',
+    rating: 4.9,
+    imageUrl:
+      'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=200&q=80',
+    isFavorite: false,
+  },
+  {
+    id: 'receta-4',
+    name: 'Habichuelas con dulce',
+    rating: 4.7,
+    imageUrl:
+      'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=200&q=80',
+    isFavorite: true,
+  },
+];
+
+const ROUTE_BY_TAB: Record<HomeTabKey, keyof AppTabsParamList> = {
+  home: 'HomeTab',
+  search: 'SearchTab',
+  favorites: 'ShoppingListTab',
+  profile: 'ProfileTab',
+};
+
 /**
- * Pantalla principal con búsqueda, categorías y recetas destacadas.
+ * Home principal con layout minimalista de recetas.
  */
 export const HomeScreen = ({ navigation }: Props) => {
+  const insets = useSafeAreaInsets();
   const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { recipes, isLoading, error, search, selectedCategory, setSearch, setCategory, refreshRecipes } = useRecipes();
+  const [search, setSearch] = useState('');
 
-  const categories = useMemo(() => RECIPE_CATEGORIES, []);
-
-  const renderRecipe = ({ item }: { item: Recipe }) => (
-    <RecipeCard onPress={() => rootNavigation.navigate('RecipeDetail', { recipeId: item.id })} recipe={item} />
-  );
+  const handleTabPress = (tab: HomeTabKey) => {
+    navigation.navigate(ROUTE_BY_TAB[tab]);
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <FlatList
-        contentContainerStyle={styles.listContent}
-        data={recipes}
-        keyExtractor={(item) => item.id}
-        onRefresh={refreshRecipes}
-        refreshing={isLoading}
-        renderItem={renderRecipe}
-        ListHeaderComponent={
-          <View>
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>¿Qué quieres cocinar hoy?</Text>
-
-              <Pressable onPress={() => navigation.navigate('ProfileTab')}>
-                <Ionicons color={COLORS.primary} name="person-circle-outline" size={36} />
-              </Pressable>
-            </View>
-
-            <View style={styles.searchContainer}>
-              <Ionicons color={COLORS.textSecondary} name="search-outline" size={20} />
-              <TextInput
-                onChangeText={setSearch}
-                placeholder="Buscar recetas..."
-                placeholderTextColor={COLORS.textSecondary}
-                style={styles.searchInput}
-                value={search}
-              />
-            </View>
-
-            <ScrollView
-              contentContainerStyle={styles.categoriesContent}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-            >
-              {categories.map((category) => (
-                <CategoryItem
-                  active={selectedCategory === category}
-                  key={category}
-                  label={category}
-                  onPress={() => setCategory(category)}
-                />
-              ))}
-            </ScrollView>
-
-            <Text style={styles.sectionTitle}>Recetas</Text>
-
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-            {isLoading ? <ActivityIndicator color={COLORS.primary} style={styles.inlineLoader} /> : null}
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <View style={styles.screen}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.contentContainer,
+            {
+              paddingBottom: 210 + insets.bottom,
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Ionicons color="#1A1A1A" name="menu" size={28} />
+            <Text style={styles.headerTitle}>Recetas RD</Text>
+            <View style={styles.headerSpacer} />
           </View>
-        }
-        ListEmptyComponent={
-          !isLoading ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>No encontramos recetas</Text>
-              <Text style={styles.emptyText}>Prueba otra búsqueda o cambia la categoría.</Text>
-            </View>
-          ) : null
-        }
-      />
+
+          <SearchInput
+            containerStyle={styles.searchInput}
+            onChangeText={setSearch}
+            placeholder="Buscar recetas..."
+            value={search}
+          />
+
+          <Text style={styles.sectionTitle}>Categorías</Text>
+          <ScrollView
+            contentContainerStyle={styles.categoriesContainer}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          >
+            {CATEGORIES.map((category) => (
+              <CategoryCard key={category.id} imageUrl={category.imageUrl} title={category.name} />
+            ))}
+          </ScrollView>
+
+          <Text style={styles.sectionTitle}>Recetas populares</Text>
+          <View style={styles.recipesContainer}>
+            {POPULAR_RECIPES.map((recipe) => (
+              <RecipeListItem
+                imageUrl={recipe.imageUrl}
+                isFavorite={recipe.isFavorite}
+                key={recipe.id}
+                onPress={() => rootNavigation.navigate('RecipeDetail', { recipeId: recipe.id })}
+                rating={recipe.rating}
+                title={recipe.name}
+              />
+            ))}
+          </View>
+        </ScrollView>
+
+        <BottomTabBar activeTab="home" bottomInset={insets.bottom} onTabPress={handleTabPress} />
+        <FloatingButton bottomInset={insets.bottom} onPress={() => navigation.navigate('AddTab')} />
+      </View>
     </SafeAreaView>
   );
 };
@@ -104,73 +162,45 @@ export const HomeScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F2F2F2',
   },
-  listContent: {
-    paddingHorizontal: LAYOUT.contentHorizontalPadding,
-    paddingBottom: SPACING.xl,
+  screen: {
+    flex: 1,
+    backgroundColor: '#F2F2F2',
+  },
+  contentContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
   },
   header: {
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.md,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   headerTitle: {
-    fontSize: FONT_SIZE.xl,
-    color: COLORS.textPrimary,
+    fontSize: 31,
+    color: '#C9822B',
     fontWeight: '700',
-    flex: 1,
-    marginRight: SPACING.md,
+    letterSpacing: 0.3,
   },
-  searchContainer: {
-    backgroundColor: COLORS.inputBackground,
-    borderColor: COLORS.border,
-    borderWidth: 1,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    marginBottom: SPACING.md,
+  headerSpacer: {
+    width: 28,
   },
   searchInput: {
-    flex: 1,
-    minHeight: 48,
-    marginLeft: SPACING.xs,
-    color: COLORS.textPrimary,
-    fontSize: FONT_SIZE.md,
-  },
-  categoriesContent: {
-    paddingBottom: SPACING.sm,
+    marginBottom: 24,
   },
   sectionTitle: {
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.md,
-    fontSize: FONT_SIZE.lg,
-    color: COLORS.textPrimary,
+    fontSize: 22,
+    color: '#1A1A1A',
     fontWeight: '700',
+    marginBottom: 12,
   },
-  inlineLoader: {
-    marginBottom: SPACING.md,
+  categoriesContainer: {
+    paddingRight: 8,
+    marginBottom: 24,
   },
-  errorText: {
-    color: COLORS.danger,
-    marginBottom: SPACING.sm,
-    fontSize: FONT_SIZE.sm,
-  },
-  emptyContainer: {
-    paddingVertical: SPACING.xl,
-    alignItems: 'center',
-  },
-  emptyTitle: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textPrimary,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  emptyText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
+  recipesContainer: {
+    paddingBottom: 8,
   },
 });

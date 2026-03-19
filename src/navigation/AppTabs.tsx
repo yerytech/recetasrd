@@ -3,11 +3,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { COLORS, FONT_SIZE, SPACING } from '../constants/theme';
 import { AddRecipeScreen } from '../screens/AddRecipeScreen';
-import { HomeScreen } from '../screens/HomeScreen';
+
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { ShoppingListScreen } from '../screens/ShoppingListScreen';
 import { AppTabsParamList } from './types';
+import { HomeScreen } from '../screens/HomeScreen';
 
 const Tab = createBottomTabNavigator<AppTabsParamList>();
 
@@ -46,7 +47,14 @@ export const AppTabs = () => {
         },
       })}
     >
-      <Tab.Screen component={HomeScreen} name="HomeTab" options={{ title: 'Home' }} />
+      <Tab.Screen
+        component={HomeScreen}
+        name="HomeTab"
+        options={{
+          title: 'Home',
+          tabBarStyle: { display: 'none' },
+        }}
+      />
       <Tab.Screen component={SearchScreen} name="SearchTab" options={{ title: 'Buscar' }} />
       <Tab.Screen component={AddRecipeScreen} name="AddTab" options={{ title: 'Agregar' }} />
       <Tab.Screen component={ShoppingListScreen} name="ShoppingListTab" options={{ title: 'Lista' }} />

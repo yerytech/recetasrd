@@ -26,7 +26,6 @@ export const RecipeCard = ({ recipe, onPress }: RecipeCardProps) => {
 
         <View style={styles.ratingRow}>
           <RatingStars rating={recipe.averageRating} showValue size={14} />
-          <Text style={styles.ratingCount}>({recipe.ratingsCount})</Text>
         </View>
       </View>
     </Pressable>
@@ -36,37 +35,32 @@ export const RecipeCard = ({ recipe, onPress }: RecipeCardProps) => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.white,
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.md,
     overflow: 'hidden',
     marginBottom: SPACING.md,
     ...SHADOWS.card,
   },
   image: {
     width: '100%',
-    height: 170,
+    height: 160,
     backgroundColor: COLORS.secondary,
   },
   content: {
     padding: SPACING.md,
   },
   title: {
-    fontSize: FONT_SIZE.lg,
+    fontSize: FONT_SIZE.md,
     color: COLORS.textPrimary,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   category: {
     fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
+    marginBottom: 6,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  ratingCount: {
-    marginLeft: SPACING.xs,
-    color: COLORS.textSecondary,
-    fontSize: FONT_SIZE.xs,
   },
 });

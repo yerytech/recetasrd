@@ -21,22 +21,23 @@ export const CategoryItem = ({ label, active = false, onPress }: CategoryItemPro
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: RADIUS.round,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    backgroundColor: COLORS.inputBackground,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 10,
+    backgroundColor: COLORS.softPrimary,
     marginRight: SPACING.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 96,
   },
   activeContainer: {
     backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
   },
   text: {
     fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
+    color: COLORS.textPrimary,
     fontWeight: '600',
+    textAlign: 'center',
   },
   activeText: {
     color: COLORS.white,

@@ -6,11 +6,12 @@ export const COLORS = {
   background: '#FFFFFF',
   primary: '#FF7A00',
   secondary: '#FFD580',
+  softPrimary: '#FFF3E0',
   textPrimary: '#1A1A1A',
   textSecondary: '#777777',
   border: '#F1F1F1',
   white: '#FFFFFF',
-  inputBackground: '#FAFAFA',
+  inputBackground: '#F5F5F5',
   danger: '#EF4444',
   success: '#16A34A',
 };

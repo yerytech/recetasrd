@@ -19,7 +19,7 @@ import { COLORS, FONT_SIZE, SPACING } from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
 import { AuthStackParamList } from '../navigation/types';
 
-const appLogo = require('../../assets/icon.png');
+const appLogo = require('../../assets/logo.png');
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
