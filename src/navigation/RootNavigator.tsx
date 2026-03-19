@@ -37,7 +37,7 @@ export const RootNavigator = () => {
   return (
     <NavigationContainer theme={navTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!user ? (
+        {user ? (
           <>
             <Stack.Screen component={AppTabs} name="App" />
             <Stack.Screen component={RecipeDetailScreen} name="RecipeDetail" />

@@ -1,19 +1,19 @@
-import { ActivityIndicator, Image, SafeAreaView, StyleSheet, Text, View } from 'react-native';
-
-import { COLORS, FONT_SIZE, SPACING } from '../constants/theme';
+import { StatusBar } from 'expo-status-bar';
+import { Image, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const appLogo = require('../../assets/logo.png');
 
-/**
- * Pantalla de carga inicial.
- */
 export const SplashScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="light" />
       <View style={styles.container}>
-        <Image resizeMode="contain" source={appLogo} style={styles.logo} />
-        <Text style={styles.title}>Recetas RD</Text>
-        <ActivityIndicator color={COLORS.primary} size="large" style={styles.loader} />
+        <Image 
+          source={appLogo}
+          resizeMode="contain"
+          style={styles.logo}
+        />
       </View>
     </SafeAreaView>
   );
@@ -22,25 +22,15 @@ export const SplashScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#C47F2A', 
   },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
   },
   logo: {
-    width: 110,
-    height: 110,
-    marginBottom: SPACING.sm,
-  },
-  title: {
-    fontSize: FONT_SIZE.xl,
-    color: COLORS.textPrimary,
-    fontWeight: '700',
-  },
-  loader: {
-    marginTop: SPACING.lg,
+    width: 240, 
+    height: 240,
   },
 });
