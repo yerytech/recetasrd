@@ -1,31 +1,30 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import {
   Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
-import { CustomButton } from '../components/CustomButton';
-import { CustomInput } from '../components/CustomInput';
-import { COLORS, FONT_SIZE, SPACING } from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
 import { AuthStackParamList } from '../navigation/types';
 
 const appLogo = require('../../assets/logo.png');
+const googleIcon = require('../../assets/google icon.png');
+const appleIcon = require('../../assets/apple icon.png');
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
-/**
- * Pantalla de inicio de sesión.
- */
 export const LoginScreen = ({ navigation }: Props) => {
   const { login } = useAuth();
 
@@ -46,93 +45,198 @@ export const LoginScreen = ({ navigation }: Props) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          <Image resizeMode="contain" source={appLogo} style={styles.logo} />
+    <LinearGradient
+      colors={['#F2C078', '#C47F2A', '#A9651F']} // 🎨 degradado PRO
+      style={{ flex: 1 }}
+    >
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+        >
+          <ScrollView
+            contentContainerStyle={styles.container}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* LOGO */}
+            <Image source={appLogo} style={styles.logo} resizeMode="contain" />
 
-          <Text style={styles.title}>Bienvenido</Text>
-          <Text style={styles.subtitle}>Descubre recetas dominicanas en segundos.</Text>
+            {/* TITULOS */}
+            <Text style={styles.title}>¡BIENVENIDO!</Text>
+            <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
 
-          <View style={styles.form}>
-            <CustomInput
-              autoComplete="email"
-              keyboardType="email-address"
-              label="Email"
-              onChangeText={setEmail}
-              placeholder="correo@ejemplo.com"
-              value={email}
-            />
+            {/* INPUT EMAIL */}
+            <View style={styles.input}>
+              <Ionicons color="#7A4E1D" name="mail-outline" size={20} style={styles.inputIcon} />
+              <TextInput
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                onChangeText={setEmail}
+                placeholder="Correo Electrónico"
+                placeholderTextColor="#7A4E1D"
+                style={styles.inputText}
+                value={email}
+              />
+            </View>
 
-            <CustomInput
-              autoComplete="password"
-              label="Contraseña"
-              onChangeText={setPassword}
-              placeholder="Tu contraseña"
-              secureTextEntry
-              value={password}
-            />
+            {/* INPUT PASSWORD */}
+            <View style={styles.input}>
+              <Ionicons color="#7A4E1D" name="lock-closed-outline" size={20} style={styles.inputIcon} />
+              <TextInput
+                onChangeText={setPassword}
+                placeholder="Contraseña"
+                placeholderTextColor="#7A4E1D"
+                secureTextEntry
+                style={styles.inputText}
+                value={password}
+              />
+            </View>
 
-            <CustomButton loading={isSubmitting} onPress={handleLogin} title="Iniciar sesión" />
-          </View>
+            {/* BOTON LOGIN */}
+            <Pressable style={styles.button} onPress={handleLogin}>
+              <Text style={styles.buttonText}>
+                {isSubmitting ? 'Cargando...' : 'ENTRA A LA COCINA'}
+              </Text>
+            </Pressable>
 
-          <Pressable onPress={() => navigation.navigate('Register')} style={styles.linkContainer}>
-            <Text style={styles.linkText}>
-              ¿No tienes cuenta? <Text style={styles.linkAction}>Registrarse</Text>
-            </Text>
-          </Pressable>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            {/* DIVIDER */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.line} />
+              <Text style={styles.dividerText}>O inicia con</Text>
+              <View style={styles.line} />
+            </View>
+
+            {/* SOCIAL */}
+            <View style={styles.socialContainer}>
+              <View style={styles.socialBtn}>
+                <Image resizeMode="contain" source={googleIcon} style={styles.socialIcon} />
+              </View>
+              <View style={styles.socialBtn}>
+                <Image resizeMode="contain" source={appleIcon} style={styles.socialIcon} />
+              </View>
+            </View>
+
+            {/* REGISTER */}
+            <Pressable onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.registerText}>
+                ¡Nuevo en Recetas RD?{' '}
+                <Text style={styles.registerLink}>Regístrate</Text>
+              </Text>
+            </Pressable>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  keyboardView: {
-    flex: 1,
-  },
   container: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.xl,
+    padding: 24,
   },
+
   logo: {
-    width: 100,
-    height: 100,
+    width: 150,
+    height: 150,
     alignSelf: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: 20,
   },
+
   title: {
     textAlign: 'center',
-    color: COLORS.textPrimary,
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#5A3A14',
   },
+
   subtitle: {
     textAlign: 'center',
-    color: COLORS.textSecondary,
-    fontSize: FONT_SIZE.sm,
-    marginTop: 6,
-    marginBottom: SPACING.xl,
+    marginBottom: 30,
+    color: '#5A3A14',
   },
-  form: {
-    width: '100%',
-  },
-  linkContainer: {
-    marginTop: SPACING.lg,
+
+  input: {
+    backgroundColor: '#EAD7B8',
+    padding: 18,
+    borderRadius: 30,
+    marginBottom: 15,
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  linkText: {
-    color: COLORS.textSecondary,
-    fontSize: FONT_SIZE.sm,
+
+  inputText: {
+    color: '#7A4E1D',
+    flex: 1,
   },
-  linkAction: {
-    color: COLORS.primary,
-    fontWeight: '700',
+
+  inputIcon: {
+    marginRight: 10,
+  },
+
+  button: {
+    backgroundColor: '#C47F2A',
+    padding: 18,
+    borderRadius: 30,
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 25,
+  },
+
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+
+  dividerText: {
+    marginHorizontal: 10,
+    color: '#FFFFFF',
+  },
+
+  socialContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    marginBottom: 25,
+  },
+
+  socialBtn: {
+    width: 55,
+    height: 55,
+    backgroundColor: '#fff',
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+  },
+
+  socialIcon: {
+    width: 50,
+    height: 50,
+  },
+
+  registerText: {
+    textAlign: 'center',
+    color: '#5A3A14',
+  },
+
+  registerLink: {
+    fontWeight: 'bold',
+    color: '#e9e9e9',
   },
 });
