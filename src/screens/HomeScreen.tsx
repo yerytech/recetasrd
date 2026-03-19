@@ -3,11 +3,9 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BottomTabBar, HomeTabKey } from '../components/BottomTabBar';
 import { CategoryCard } from '../components/CategoryCard';
-import { FloatingButton } from '../components/FloatingButton';
 import { RecipeListItem } from '../components/RecipeListItem';
 import { SearchInput } from '../components/SearchInput';
 import { AppTabsParamList, RootStackParamList } from '../navigation/types';
@@ -82,35 +80,18 @@ const POPULAR_RECIPES: PopularRecipe[] = [
   },
 ];
 
-const ROUTE_BY_TAB: Record<HomeTabKey, keyof AppTabsParamList> = {
-  home: 'HomeTab',
-  search: 'SearchTab',
-  favorites: 'ShoppingListTab',
-  profile: 'ProfileTab',
-};
-
 /**
  * Home principal con layout minimalista de recetas.
  */
 export const HomeScreen = ({ navigation }: Props) => {
-  const insets = useSafeAreaInsets();
   const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [search, setSearch] = useState('');
-
-  const handleTabPress = (tab: HomeTabKey) => {
-    navigation.navigate(ROUTE_BY_TAB[tab]);
-  };
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.screen}>
         <ScrollView
-          contentContainerStyle={[
-            styles.contentContainer,
-            {
-              paddingBottom: 210 + insets.bottom,
-            },
-          ]}
+          contentContainerStyle={[styles.contentContainer, styles.contentBottomSpacing]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
@@ -151,9 +132,6 @@ export const HomeScreen = ({ navigation }: Props) => {
             ))}
           </View>
         </ScrollView>
-
-        <BottomTabBar activeTab="home" bottomInset={insets.bottom} onTabPress={handleTabPress} />
-        <FloatingButton bottomInset={insets.bottom} onPress={() => navigation.navigate('AddTab')} />
       </View>
     </SafeAreaView>
   );
@@ -171,6 +149,9 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: 20,
     paddingTop: 12,
+  },
+  contentBottomSpacing: {
+    paddingBottom: 28,
   },
   header: {
     flexDirection: 'row',

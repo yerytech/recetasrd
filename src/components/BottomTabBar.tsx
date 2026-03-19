@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 export type HomeTabKey = 'home' | 'search' | 'favorites' | 'profile';
 
 type BottomTabBarProps = {
-  activeTab: HomeTabKey;
+  activeTab?: HomeTabKey;
   onTabPress: (tab: HomeTabKey) => void;
   bottomInset?: number;
 };
@@ -65,10 +65,6 @@ export const BottomTabBar = ({ activeTab, onTabPress, bottomInset = 0 }: BottomT
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: '#C9822B',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

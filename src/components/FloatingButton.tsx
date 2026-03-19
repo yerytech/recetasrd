@@ -13,7 +13,7 @@ export const FloatingButton = ({ onPress, bottomInset = 0 }: FloatingButtonProps
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.button, { bottom: Math.max(bottomInset, 10) + 34 }, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.button, { bottom: Math.max(bottomInset, 10) + 10 }, pressed && styles.pressed]}
     >
       <Ionicons color="#FFFFFF" name="add" size={34} />
     </Pressable>
@@ -29,6 +29,8 @@ const styles = StyleSheet.create({
     height: 68,
     borderRadius: 34,
     backgroundColor: '#C9822B',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000000',
