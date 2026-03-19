@@ -24,6 +24,7 @@ export const CategoryCard = ({ title, imageUrl, onPress, style }: CategoryCardPr
 const styles = StyleSheet.create({
   container: {
     width: 116,
+    height: 150,
     backgroundColor: '#C9822B',
     borderRadius: 16,
     paddingVertical: 12,
@@ -40,8 +41,8 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   image: {
-    width: 56,
-    height: 56,
+    width: 86,
+    height: 100,
     borderRadius: 14,
     marginBottom: 10,
     backgroundColor: '#FFFFFF',
