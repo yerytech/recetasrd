@@ -87,6 +87,20 @@ export const HomeScreen = ({ navigation }: Props) => {
   const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [search, setSearch] = useState('');
 
+  const handleCategoryPress = (categoryId: string) => {
+    const categoryMap: Record<string, keyof RootStackParamList> = {
+      'cat-1': 'Desayuno',
+      'cat-2': 'Almuerzo',
+      'cat-3': 'Cena',
+      'cat-4': 'Postres',
+    };
+    
+    const route = categoryMap[categoryId];
+    if (route) {
+      rootNavigation.navigate(route);
+    }
+  };
+
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.screen}>
@@ -114,7 +128,12 @@ export const HomeScreen = ({ navigation }: Props) => {
             showsHorizontalScrollIndicator={false}
           >
             {CATEGORIES.map((category) => (
-              <CategoryCard key={category.id} imageUrl={category.imageUrl} title={category.name} />
+              <CategoryCard 
+                key={category.id} 
+                imageUrl={category.imageUrl} 
+                title={category.name}
+                onPress={() => handleCategoryPress(category.id)}
+              />
             ))}
           </ScrollView>
 

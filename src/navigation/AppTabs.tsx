@@ -4,12 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomTabBar, HomeTabKey } from '../components/BottomTabBar';
 import { FloatingButton } from '../components/FloatingButton';
-import { AddRecipeScreen } from '../screens/AddRecipeScreen';
+
 import { HomeScreen } from '../screens/HomeScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { ShoppingListScreen } from '../screens/ShoppingListScreen';
 import { AppTabsParamList } from './types';
+import { AddRecetaScreen } from '../screens/AddRecetaScreen';
 
 const Tab = createBottomTabNavigator<AppTabsParamList>();
 
@@ -62,7 +63,7 @@ export const AppTabs = () => {
       <Tab.Screen component={HomeScreen} name="HomeTab" options={{ title: 'Home' }} />
       <Tab.Screen component={SearchScreen} name="SearchTab" options={{ title: 'Buscar' }} />
       <Tab.Screen
-        component={AddRecipeScreen}
+        component={AddRecetaScreen}
         name="AddTab"
         options={{
           title: 'Agregar',

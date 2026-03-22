@@ -5,6 +5,10 @@ import { COLORS } from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
 import { RecipeDetailScreen } from '../screens/RecipeDetailScreen';
 import { SplashScreen } from '../screens/SplashScreen';
+import { DesayunoScreen } from '../screens/DesayunoScreen';
+import { AlmuerzoScreen } from '../screens/AlmuerzoScreen';
+import { CenaScreen } from '../screens/CenaScreen';
+import { PostresScreen } from '../screens/PostresScreen';
 import { AppTabs } from './AppTabs';
 import { AuthNavigator } from './AuthNavigator';
 import { RootStackParamList } from './types';
@@ -41,6 +45,10 @@ export const RootNavigator = () => {
           <>
             <Stack.Screen component={AppTabs} name="App" />
             <Stack.Screen component={RecipeDetailScreen} name="RecipeDetail" />
+            <Stack.Screen component={DesayunoScreen} name="Desayuno" />
+            <Stack.Screen component={AlmuerzoScreen} name="Almuerzo" />
+            <Stack.Screen component={CenaScreen} name="Cena" />
+            <Stack.Screen component={PostresScreen} name="Postres" />
           </>
         ) : (
           <Stack.Screen component={AuthNavigator} name="Auth" />

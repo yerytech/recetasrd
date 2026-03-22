@@ -20,4 +20,8 @@ export type RootStackParamList = {
   Auth: undefined;
   App: undefined;
   RecipeDetail: { recipeId: string };
+  Desayuno: undefined;
+  Almuerzo: undefined;
+  Cena: undefined;
+  Postres: undefined;
 };

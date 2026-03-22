@@ -11,8 +11,24 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [
+      "expo-location",
+      [
+        "react-native-maps",
+        {
+          "maps": {
+            "android": "google",
+            "ios": "google"
+          }
+        }
+      ]
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Se necesita tu ubicación para registrar dónde se preparó la receta",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Se necesita tu ubicación para registrar dónde se preparó la receta"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +38,11 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.recetas_rd"
+      "package": "com.anonymous.recetas_rd",
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/logo.png"

@@ -13,12 +13,19 @@ type EnvironmentLike = {
   };
 };
 
+type RecipeLocation = {
+  address: string;
+  latitude: number;
+  longitude: number;
+};
+
 type CreateRecipeInput = {
   title: string;
   category: string;
   imageUrl: string;
   ingredients: Ingredient[];
   preparation: string;
+  location?: RecipeLocation | null;
 };
 
 type RecipeRow = {
@@ -29,6 +36,7 @@ type RecipeRow = {
   ingredients?: unknown;
   preparation?: string | null;
   author_id?: string | null;
+  location_data?: unknown;
   created_at?: string | null;
 };
 
@@ -90,12 +98,16 @@ const normalizeIngredient = (ingredient: unknown, index: number): Ingredient => 
       id?: unknown;
       name?: unknown;
       quantity?: unknown;
+      purchaseLocation?: unknown;
     };
+
+    const purchaseLocation = parseLocationData(objectIngredient.purchaseLocation);
 
     return {
       id: typeof objectIngredient.id === 'string' ? objectIngredient.id : generateId(`ingredient-${index}`),
       name: typeof objectIngredient.name === 'string' ? objectIngredient.name : 'Ingrediente',
       quantity: typeof objectIngredient.quantity === 'string' ? objectIngredient.quantity : '',
+      purchaseLocation,
     };
   }
 
@@ -112,6 +124,32 @@ const normalizeIngredients = (ingredients: unknown): Ingredient[] => {
   }
 
   return ingredients.map((ingredient, index) => normalizeIngredient(ingredient, index));
+};
+
+const parseLocationData = (location: unknown): RecipeLocation | null => {
+  if (!location || typeof location !== 'object') {
+    return null;
+  }
+
+  const maybeLocation = location as {
+    address?: unknown;
+    latitude?: unknown;
+    longitude?: unknown;
+  };
+
+  if (
+    typeof maybeLocation.address !== 'string' ||
+    typeof maybeLocation.latitude !== 'number' ||
+    typeof maybeLocation.longitude !== 'number'
+  ) {
+    return null;
+  }
+
+  return {
+    address: maybeLocation.address,
+    latitude: maybeLocation.latitude,
+    longitude: maybeLocation.longitude,
+  };
 };
 
 const mapCommentRow = (row: CommentRow): Comment => ({
@@ -143,6 +181,7 @@ const mapRecipeRow = (row: RecipeRow, comments: Comment[], ratings: Rating[]): R
   ratingsCount: ratings.length,
   comments,
   createdAt: row.created_at ?? new Date().toISOString(),
+  location: parseLocationData(row.location_data),
 });
 
 const mapSupabaseUserToAppUser = (supabaseUser: SupabaseAuthUser, fallbackName?: string): User => {
@@ -195,9 +234,6 @@ const rebuildLocalRecipeStats = (recipeId: string): void => {
   });
 };
 
-/**
- * Inicia sesión con correo y contraseña.
- */
 export const loginUser = async (email: string, password: string): Promise<User> => {
   if (!email.trim() || !password.trim()) {
     throw new Error('Completa correo y contraseña.');
@@ -222,9 +258,6 @@ export const loginUser = async (email: string, password: string): Promise<User> 
   return mapSupabaseUserToAppUser(data.user);
 };
 
-/**
- * Registra un nuevo usuario.
- */
 export const registerUser = async ({ name, email, password }: RegisterPayload): Promise<User> => {
   if (!name.trim() || !email.trim() || !password.trim()) {
     throw new Error('Completa todos los campos requeridos.');
@@ -265,9 +298,6 @@ export const registerUser = async ({ name, email, password }: RegisterPayload): 
   return mapSupabaseUserToAppUser(data.user, name);
 };
 
-/**
- * Obtiene recetas con filtros opcionales.
- */
 export const getRecipes = async (options?: { search?: string; category?: string }): Promise<Recipe[]> => {
   if (!supabase) {
     return applyRecipeFilters(localRecipes, options);
@@ -276,7 +306,7 @@ export const getRecipes = async (options?: { search?: string; category?: string 
   try {
     const { data: recipeRows, error: recipesError } = await supabase
       .from('recipes')
-      .select('id, title, category, image_url, ingredients, preparation, author_id, created_at')
+      .select('id, title, category, image_url, ingredients, preparation, author_id, location_data, created_at')
       .order('created_at', { ascending: false });
 
     if (recipesError) {
@@ -322,9 +352,6 @@ export const getRecipes = async (options?: { search?: string; category?: string 
   }
 };
 
-/**
- * Obtiene una receta por identificador.
- */
 export const getRecipeById = async (recipeId: string): Promise<Recipe | null> => {
   if (!supabase) {
     return localRecipes.find((recipe) => recipe.id === recipeId) ?? null;
@@ -333,7 +360,7 @@ export const getRecipeById = async (recipeId: string): Promise<Recipe | null> =>
   try {
     const { data: recipeRow, error: recipeError } = await supabase
       .from('recipes')
-      .select('id, title, category, image_url, ingredients, preparation, author_id, created_at')
+      .select('id, title, category, image_url, ingredients, preparation, author_id, location_data, created_at')
       .eq('id', recipeId)
       .maybeSingle();
 
@@ -371,9 +398,6 @@ export const getRecipeById = async (recipeId: string): Promise<Recipe | null> =>
   }
 };
 
-/**
- * Crea una receta nueva.
- */
 export const createRecipe = async (payload: CreateRecipeInput, userId: string): Promise<Recipe> => {
   const title = payload.title.trim();
   const category = payload.category.trim();
@@ -402,6 +426,7 @@ export const createRecipe = async (payload: CreateRecipeInput, userId: string): 
       ratingsCount: 0,
       comments: [],
       createdAt: new Date().toISOString(),
+      location: payload.location || null,
     };
 
     localRecipes = [newRecipe, ...localRecipes];
@@ -417,8 +442,9 @@ export const createRecipe = async (payload: CreateRecipeInput, userId: string): 
       ingredients: cleanIngredients,
       preparation,
       author_id: userId,
+      location_data: payload.location || null,
     })
-    .select('id, title, category, image_url, ingredients, preparation, author_id, created_at')
+    .select('id, title, category, image_url, ingredients, preparation, author_id, location_data, created_at')
     .single();
 
   if (error || !data) {
@@ -428,9 +454,6 @@ export const createRecipe = async (payload: CreateRecipeInput, userId: string): 
   return mapRecipeRow(data as RecipeRow, [], []);
 };
 
-/**
- * Agrega un comentario a una receta.
- */
 export const addComment = async (
   recipeId: string,
   userId: string,
@@ -476,9 +499,6 @@ export const addComment = async (
   return mapCommentRow(data as CommentRow);
 };
 
-/**
- * Registra o actualiza la calificación de una receta.
- */
 export const addRating = async (recipeId: string, userId: string, value: number): Promise<Rating> => {
   if (value < 1 || value > 5) {
     throw new Error('La calificación debe estar entre 1 y 5.');
