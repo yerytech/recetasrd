@@ -4,11 +4,11 @@ import {
   Alert,
   FlatList,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { COLORS, FONT_SIZE, LAYOUT, SPACING } from '../constants/theme';
 import { useShoppingList } from '../hooks/useShoppingList';

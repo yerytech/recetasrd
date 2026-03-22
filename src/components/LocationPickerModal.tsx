@@ -41,6 +41,21 @@ export const LocationPickerModal = ({
     }
   }, [visible]);
 
+  const getCurrentPositionWithTimeout = async (timeoutMs: number) => {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Location request timed out'));
+      }, timeoutMs);
+    });
+
+    return Promise.race([
+      Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      }),
+      timeoutPromise,
+    ]);
+  };
+
   const getCurrentLocation = async () => {
     try {
       setLoading(true);
@@ -57,10 +72,7 @@ export const LocationPickerModal = ({
       }
 
       try {
-        const currentLocation = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-          timeoutMs: 10000, // 10 second timeout
-        });
+        const currentLocation = await getCurrentPositionWithTimeout(10000);
         const { latitude, longitude } = currentLocation.coords;
 
         setRegion({

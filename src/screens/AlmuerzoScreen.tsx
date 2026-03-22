@@ -1,5 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
-import { FlatList, SafeAreaView, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FoodCard } from '../components/FoodCard';
 import { HeaderComponent } from '../components/HeaderComponent';

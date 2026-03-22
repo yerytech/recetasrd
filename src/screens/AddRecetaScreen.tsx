@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { CategoryItem } from '../components/CategoryItem';
 import { CustomButton } from '../components/CustomButton';
@@ -13,6 +13,7 @@ import { useAuth } from '../hooks/useAuth';
 import { AppTabsParamList } from '../navigation/types';
 import { createRecipe } from '../services/supabase';
 import { Ingredient } from '../types';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = BottomTabScreenProps<AppTabsParamList, 'AddTab'>;
 

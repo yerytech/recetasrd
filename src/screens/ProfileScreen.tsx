@@ -4,12 +4,12 @@ import { useCallback, useState } from 'react';
 import {
   Alert,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CustomButton } from '../components/CustomButton';
 import { COLORS, FONT_SIZE, LAYOUT, SPACING } from '../constants/theme';
