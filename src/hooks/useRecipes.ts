@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { getRecipes } from '../services/supabase';
 import { Recipe } from '../types';
@@ -46,6 +47,13 @@ export const useRecipes = () => {
 
     return () => clearTimeout(timer);
   }, [refreshRecipes]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshRecipes();
+      return undefined;
+    }, [refreshRecipes]),
+  );
 
   const setSearch = useCallback((search: string) => {
     setFilters((previous) => ({
