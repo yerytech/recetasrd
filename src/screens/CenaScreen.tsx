@@ -1,4 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,7 +21,8 @@ export const CenaScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.container}>
+      <StatusBar style="dark" />
       <HeaderComponent
         title="Cena"
         subtitle="La mejor manera de terminar el día es con una cena deliciosa que reconforte el corazón y el alma."
@@ -47,16 +49,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F2',
   },
   columnWrapper: {
-    paddingHorizontal: 12,
-    gap: 12,
-    marginBottom: 12,
+    paddingHorizontal: 14,
+    gap: 14,
+    marginBottom: 14,
   },
   cardWrapper: {
     flex: 1,
     minHeight: 240,
+    marginBottom: 4,
   },
   listContent: {
-    paddingTop: 20,
+    paddingTop: 34,
     paddingHorizontal: 0,
+    paddingBottom: 20,
   },
 });

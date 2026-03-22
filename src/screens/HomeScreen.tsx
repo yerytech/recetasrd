@@ -1,6 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -88,7 +88,7 @@ export const HomeScreen = ({ navigation }: Props) => {
   const [search, setSearch] = useState('');
 
   const handleCategoryPress = (categoryId: string) => {
-    const categoryMap: Record<string, keyof RootStackParamList> = {
+    const categoryMap: Record<string, 'Desayuno' | 'Almuerzo' | 'Cena' | 'Postres'> = {
       'cat-1': 'Desayuno',
       'cat-2': 'Almuerzo',
       'cat-3': 'Cena',
@@ -103,15 +103,14 @@ export const HomeScreen = ({ navigation }: Props) => {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <StatusBar style="dark" />
       <View style={styles.screen}>
         <ScrollView
           contentContainerStyle={[styles.contentContainer, styles.contentBottomSpacing]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Ionicons color="#1A1A1A" name="menu" size={28} />
             <Text style={styles.headerTitle}>Recetas RD</Text>
-            <View style={styles.headerSpacer} />
           </View>
 
           <SearchInput
@@ -173,9 +172,7 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginBottom: 20,
   },
   headerTitle: {
@@ -183,9 +180,6 @@ const styles = StyleSheet.create({
     color: '#C9822B',
     fontWeight: '700',
     letterSpacing: 0.3,
-  },
-  headerSpacer: {
-    width: 28,
   },
   searchInput: {
     marginBottom: 24,

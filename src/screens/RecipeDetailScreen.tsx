@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useState } from 'react';
+import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
   Alert,
@@ -16,15 +18,48 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CommentItem } from '../components/CommentItem';
 import { CustomButton } from '../components/CustomButton';
 import { CustomInput } from '../components/CustomInput';
+import { STORAGE_KEYS } from '../constants/storage';
 import { RatingStars } from '../components/RatingStars';
 import { COLORS, FONT_SIZE, SPACING } from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
 import { useShoppingList } from '../hooks/useShoppingList';
-import { RootStackParamList } from '../navigation/types';
+import { LocalRecipeParam, RootStackParamList } from '../navigation/types';
 import { addComment, addRating, getRecipeById } from '../services/supabase';
 import { Recipe } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RecipeDetail'>;
+
+const mapLocalRecipeToRecipe = (localRecipe: LocalRecipeParam): Recipe => ({
+  id: localRecipe.id,
+  title: localRecipe.title,
+  category: localRecipe.category,
+  imageUrl: localRecipe.imageUrl,
+  ingredients: localRecipe.ingredients.map((ingredient, index) => ({
+    id: `${localRecipe.id}-ingredient-${index + 1}`,
+    name: ingredient,
+    quantity: '',
+  })),
+  preparation: localRecipe.preparation,
+  authorId: 'local',
+  averageRating: localRecipe.rating,
+  ratingsCount: 1,
+  comments: [],
+  createdAt: new Date().toISOString(),
+  location: null,
+});
+
+const parseFavoriteRecipeIds = (rawValue: string | null): string[] => {
+  if (!rawValue) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+  } catch {
+    return [];
+  }
+};
 
 /**
  * Pantalla de detalle de receta con ingredientes, preparación y comentarios.
@@ -32,6 +67,10 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RecipeDetail'>;
 export const RecipeDetailScreen = ({ navigation, route }: Props) => {
   const { user } = useAuth();
   const { addIngredients } = useShoppingList();
+  const localRecipe = route.params.localRecipe;
+  const isLocalRecipe = Boolean(localRecipe);
+  const selectedRecipeId = localRecipe?.id ?? route.params.recipeId;
+
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
@@ -39,11 +78,19 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const [isAddingToList, setIsAddingToList] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const loadRecipe = useCallback(async () => {
+    if (localRecipe) {
+      setRecipe(mapLocalRecipeToRecipe(localRecipe));
+      setSelectedRating(0);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const data = await getRecipeById(route.params.recipeId);
+      const data = await getRecipeById(selectedRecipeId);
       setRecipe(data);
       setSelectedRating(0);
     } catch {
@@ -51,11 +98,34 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
     } finally {
       setIsLoading(false);
     }
-  }, [route.params.recipeId]);
+  }, [localRecipe, selectedRecipeId]);
 
   useEffect(() => {
     void loadRecipe();
   }, [loadRecipe]);
+
+  useEffect(() => {
+    const loadFavoriteStatus = async () => {
+      const rawValue = await AsyncStorage.getItem(STORAGE_KEYS.favoriteRecipes);
+      const favoriteIds = parseFavoriteRecipeIds(rawValue);
+      setIsFavorite(favoriteIds.includes(selectedRecipeId));
+    };
+
+    void loadFavoriteStatus();
+  }, [selectedRecipeId]);
+
+  const handleToggleFavorite = async () => {
+    const rawValue = await AsyncStorage.getItem(STORAGE_KEYS.favoriteRecipes);
+    const favoriteIds = parseFavoriteRecipeIds(rawValue);
+    const alreadyFavorite = favoriteIds.includes(selectedRecipeId);
+
+    const nextIds = alreadyFavorite
+      ? favoriteIds.filter((favoriteId) => favoriteId !== selectedRecipeId)
+      : [...favoriteIds, selectedRecipeId];
+
+    await AsyncStorage.setItem(STORAGE_KEYS.favoriteRecipes, JSON.stringify(nextIds));
+    setIsFavorite(!alreadyFavorite);
+  };
 
   const handleAddToShoppingList = async () => {
     if (!recipe) {
@@ -139,6 +209,7 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View>
           <Image source={{ uri: recipe.imageUrl }} style={styles.coverImage} />
@@ -149,7 +220,12 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
         </View>
 
         <View style={styles.body}>
-          <Text style={styles.title}>{recipe.title}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{recipe.title}</Text>
+            <Pressable hitSlop={10} onPress={handleToggleFavorite} style={styles.favoriteButtonTitle}>
+              <Ionicons color={isFavorite ? COLORS.primary : COLORS.textSecondary} name={isFavorite ? 'heart' : 'heart-outline'} size={24} />
+            </Pressable>
+          </View>
 
           <View style={styles.ratingSummary}>
             <RatingStars rating={recipe.averageRating} showValue size={18} />
@@ -171,44 +247,48 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
           <Text style={styles.sectionTitle}>Preparación</Text>
           <Text style={styles.preparationText}>{recipe.preparation}</Text>
 
-          <Text style={styles.sectionTitle}>Calificar</Text>
-          <View style={styles.rateBlock}>
-            <RatingStars onRate={setSelectedRating} rating={selectedRating} size={26} />
-            <CustomButton
-              loading={isSubmittingRating}
-              onPress={handleSubmitRating}
-              style={styles.rateButton}
-              title="Enviar calificación"
-              variant="outline"
-            />
-          </View>
+          {!isLocalRecipe ? (
+            <>
+              <Text style={styles.sectionTitle}>Calificar</Text>
+              <View style={styles.rateBlock}>
+                <RatingStars onRate={setSelectedRating} rating={selectedRating} size={26} />
+                <CustomButton
+                  loading={isSubmittingRating}
+                  onPress={handleSubmitRating}
+                  style={styles.rateButton}
+                  title="Enviar calificación"
+                  variant="outline"
+                />
+              </View>
 
-          <Text style={styles.sectionTitle}>Comentarios</Text>
+              <Text style={styles.sectionTitle}>Comentarios</Text>
 
-          <CustomInput
-            multiline
-            onChangeText={setCommentText}
-            placeholder="Comparte tu experiencia con esta receta"
-            style={styles.commentInput}
-            textAlignVertical="top"
-            value={commentText}
-          />
+              <CustomInput
+                multiline
+                onChangeText={setCommentText}
+                placeholder="Comparte tu experiencia con esta receta"
+                style={styles.commentInput}
+                textAlignVertical="top"
+                value={commentText}
+              />
 
-          <CustomButton
-            loading={isSubmittingComment}
-            onPress={handleSubmitComment}
-            style={styles.commentButton}
-            title="Publicar comentario"
-            variant="secondary"
-          />
+              <CustomButton
+                loading={isSubmittingComment}
+                onPress={handleSubmitComment}
+                style={styles.commentButton}
+                title="Publicar comentario"
+                variant="secondary"
+              />
 
-          <View style={styles.commentsList}>
-            {recipe.comments.length ? (
-              recipe.comments.map((comment) => <CommentItem comment={comment} key={comment.id} />)
-            ) : (
-              <Text style={styles.noCommentsText}>Aún no hay comentarios.</Text>
-            )}
-          </View>
+              <View style={styles.commentsList}>
+                {recipe.comments.length ? (
+                  recipe.comments.map((comment) => <CommentItem comment={comment} key={comment.id} />)
+                ) : (
+                  <Text style={styles.noCommentsText}>Aún no hay comentarios.</Text>
+                )}
+              </View>
+            </>
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -243,11 +323,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.md,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+  },
   title: {
     fontSize: FONT_SIZE.xl,
     color: COLORS.textPrimary,
     fontWeight: '700',
     marginBottom: SPACING.xs,
+    flex: 1,
+  },
+  favoriteButtonTitle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
   },
   ratingSummary: {
     flexDirection: 'row',

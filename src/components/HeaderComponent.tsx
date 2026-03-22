@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface HeaderComponentProps {
   title: string;
@@ -14,13 +15,14 @@ export const HeaderComponent = ({
   showBackButton = true,
 }: HeaderComponentProps) => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   const handleBackPress = () => {
     navigation.goBack();
   };
 
   return (
-    <View style={styles.headerContainer}>
+    <View style={[styles.headerContainer, { paddingTop: insets.top + 12 }] }>
       <View style={styles.headerContent}>
         <View style={styles.headerTop}>
           {showBackButton && (
@@ -42,7 +44,6 @@ const styles = StyleSheet.create({
   headerContainer: {
     backgroundColor: '#C47F2A',
     paddingHorizontal: 16,
-    paddingTop: 16,
     paddingBottom: 24,
   },
   headerContent: {

@@ -15,6 +15,18 @@ type AuthContextValue = {
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+const parseStoredUser = (rawUser: string | null): User | null => {
+  if (!rawUser) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawUser) as User;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Proveedor global de autenticación con persistencia local.
  */
@@ -34,10 +46,10 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const hydrateAuth = useCallback(async () => {
     try {
       const rawUser = await AsyncStorage.getItem(STORAGE_KEYS.authUser);
+      const parsedStoredUser = parseStoredUser(rawUser);
 
-      if (rawUser) {
-        const parsedUser = JSON.parse(rawUser) as User;
-        setUser(parsedUser);
+      if (parsedStoredUser) {
+        setUser(parsedStoredUser);
       }
 
       if (supabase) {
@@ -51,11 +63,10 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
             name:
               typeof session.user.user_metadata?.name === 'string'
                 ? session.user.user_metadata.name
-                : rawUser
-                  ? (JSON.parse(rawUser) as User).name
+                : parsedStoredUser
+                  ? parsedStoredUser.name
                   : 'Usuario Recetas RD',
-            email:
-              session.user.email ?? (rawUser ? (JSON.parse(rawUser) as User).email : ''),
+            email: session.user.email ?? (parsedStoredUser ? parsedStoredUser.email : ''),
             avatarUrl: null,
           };
 
@@ -73,6 +84,43 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   useEffect(() => {
     void hydrateAuth();
   }, [hydrateAuth]);
+
+  useEffect(() => {
+    if (!supabase) {
+      return;
+    }
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const sessionUser = session?.user;
+
+      if (!sessionUser) {
+        setUser(null);
+        await persistUser(null);
+        return;
+      }
+
+      const storedUser = parseStoredUser(await AsyncStorage.getItem(STORAGE_KEYS.authUser));
+      const nextUser: User = {
+        id: sessionUser.id,
+        name:
+          typeof sessionUser.user_metadata?.name === 'string'
+            ? sessionUser.user_metadata.name
+            : storedUser?.name ?? 'Usuario Recetas RD',
+        email: sessionUser.email ?? storedUser?.email ?? '',
+        avatarUrl: null,
+      };
+
+      setUser(nextUser);
+
+      await persistUser(nextUser);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [persistUser]);
 
   const login = useCallback(
     async (email: string, password: string) => {

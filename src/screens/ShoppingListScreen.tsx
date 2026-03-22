@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { StatusBar } from 'expo-status-bar';
 import {
   Alert,
   FlatList,
@@ -52,6 +53,7 @@ export const ShoppingListScreen = ({}: Props) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" />
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Lista de compras</Text>

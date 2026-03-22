@@ -20,7 +20,7 @@ export default function App() {
         <AuthProvider>
           <ShoppingListProvider>
             <RootNavigator />
-            <StatusBar style="dark" />
+            <StatusBar style="light" translucent backgroundColor="transparent" />
           </ShoppingListProvider>
         </AuthProvider>
       </SafeAreaProvider>

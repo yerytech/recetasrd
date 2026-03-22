@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
 import {
   Alert,
@@ -40,6 +41,7 @@ export const ProfileScreen = ({}: Props) => {
   if (!user) {
     return (
       <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="dark" />
         <View style={styles.centeredState}>
           <Text style={styles.errorText}>No hay sesión activa.</Text>
         </View>
@@ -49,6 +51,7 @@ export const ProfileScreen = ({}: Props) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.avatarSection}>
           <View style={styles.avatar}>

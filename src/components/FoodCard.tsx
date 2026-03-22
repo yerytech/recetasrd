@@ -6,6 +6,7 @@ interface FoodCardProps {
   title: string;
   rating: number;
   imageUrl: string;
+  onPress?: () => void;
   onFavoritePress?: (isFavorite: boolean) => void;
 }
 
@@ -13,6 +14,7 @@ export const FoodCard = ({
   title,
   rating,
   imageUrl,
+  onPress,
   onFavoritePress,
 }: FoodCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
@@ -24,7 +26,7 @@ export const FoodCard = ({
   };
 
   return (
-    <View style={styles.container}>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.container, pressed && onPress ? styles.pressed : null]}>
       <View style={styles.imageContainer}>
         <Image source={{ uri: imageUrl }} style={styles.image} />
         <Pressable
@@ -49,7 +51,7 @@ export const FoodCard = ({
           <Text style={styles.rating}>{rating.toFixed(1)}</Text>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 };
 
@@ -64,6 +66,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  pressed: {
+    opacity: 0.92,
   },
   imageContainer: {
     position: 'relative',

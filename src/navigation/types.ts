@@ -16,10 +16,20 @@ export type AppTabsParamList = {
   ProfileTab: undefined;
 };
 
+export type LocalRecipeParam = {
+  id: string;
+  title: string;
+  category: string;
+  imageUrl: string;
+  rating: number;
+  ingredients: string[];
+  preparation: string;
+};
+
 export type RootStackParamList = {
   Auth: undefined;
   App: undefined;
-  RecipeDetail: { recipeId: string };
+  RecipeDetail: { recipeId: string; localRecipe?: LocalRecipeParam };
   Desayuno: undefined;
   Almuerzo: undefined;
   Cena: undefined;

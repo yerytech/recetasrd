@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, User as SupabaseAuthUser } from '@supabase/supabase-js';
 
 import { MOCK_COMMENTS, MOCK_RATINGS, MOCK_RECIPES, MOCK_USERS } from '../constants/mockData';
+import { Database, Json } from '../types/supabase';
 import { Comment, Ingredient, Rating, Recipe, RegisterPayload, User } from '../types';
 import { calculateAverageRating } from '../utils/ratings';
 
@@ -28,34 +29,9 @@ type CreateRecipeInput = {
   location?: RecipeLocation | null;
 };
 
-type RecipeRow = {
-  id: string;
-  title?: string | null;
-  category?: string | null;
-  image_url?: string | null;
-  ingredients?: unknown;
-  preparation?: string | null;
-  author_id?: string | null;
-  location_data?: unknown;
-  created_at?: string | null;
-};
-
-type CommentRow = {
-  id: string;
-  recipe_id?: string | null;
-  user_id?: string | null;
-  user_name?: string | null;
-  content?: string | null;
-  created_at?: string | null;
-};
-
-type RatingRow = {
-  id: string;
-  recipe_id?: string | null;
-  user_id?: string | null;
-  value?: number | null;
-  created_at?: string | null;
-};
+type RecipeRow = Database['public']['Tables']['recipes']['Row'];
+type CommentRow = Database['public']['Tables']['comments']['Row'];
+type RatingRow = Database['public']['Tables']['ratings']['Row'];
 
 const DEFAULT_RECIPE_IMAGE =
   'https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=1200&q=80';
@@ -67,7 +43,7 @@ const supabaseAnonKey = env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey, {
+  ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: {
         storage: AsyncStorage,
         autoRefreshToken: true,
@@ -347,8 +323,9 @@ export const getRecipes = async (options?: { search?: string; category?: string 
     });
 
     return applyRecipeFilters(recipes, options);
-  } catch {
-    return applyRecipeFilters(localRecipes, options);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'No se pudieron cargar las recetas desde Supabase.';
+    throw new Error(message);
   }
 };
 
@@ -393,8 +370,9 @@ export const getRecipeById = async (recipeId: string): Promise<Recipe | null> =>
     const ratings = ((ratingsResult.data ?? []) as RatingRow[]).map(mapRatingRow);
 
     return mapRecipeRow(recipeRow as RecipeRow, comments, ratings);
-  } catch {
-    return localRecipes.find((recipe) => recipe.id === recipeId) ?? null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'No se pudo cargar la receta desde Supabase.';
+    throw new Error(message);
   }
 };
 
@@ -439,10 +417,10 @@ export const createRecipe = async (payload: CreateRecipeInput, userId: string): 
       title,
       category,
       image_url: payload.imageUrl.trim() || DEFAULT_RECIPE_IMAGE,
-      ingredients: cleanIngredients,
+      ingredients: cleanIngredients as unknown as Json,
       preparation,
       author_id: userId,
-      location_data: payload.location || null,
+      location_data: (payload.location || null) as Json,
     })
     .select('id, title, category, image_url, ingredients, preparation, author_id, location_data, created_at')
     .single();

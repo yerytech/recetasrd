@@ -77,8 +77,8 @@ Se desarrolló un prototipo inicial para definir funcionalidades y pantallas pri
 - **Gestión de dependencias:** Node.js y npm.
 - **Control de versiones:** Git y GitHub.
 - **Gestión del proyecto:** Jira.
-- **Backend (planificado):** Node.js y Express.js.
-- **Base de datos (planificada):** PostgreSQL.
+- **Backend:** Supabase (Auth + Postgres + RLS).
+- **Base de datos:** PostgreSQL (gestionada por Supabase).
 
 ## 7. Metodología de Trabajo
 
@@ -101,6 +101,25 @@ Actualmente este repositorio contiene la base de la app móvil en Expo + React N
 ```bash
 npm install
 ```
+
+### Configurar Supabase
+
+1. Copia el archivo de ejemplo de entorno:
+
+```bash
+cp .env.example .env
+```
+
+2. Completa en `.env`:
+
+```bash
+EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+```
+
+3. Ejecuta la migración SQL de `supabase/migrations/20260322_init_recetas_rd.sql` en tu proyecto Supabase.
+
+Guía completa en: `docs/SUPABASE_SETUP.md`.
 
 ### Iniciar el proyecto
 

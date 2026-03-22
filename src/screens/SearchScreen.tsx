@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -34,6 +35,7 @@ export const SearchScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" />
       <View style={styles.container}>
         <Text style={styles.title}>Buscar recetas</Text>
 
