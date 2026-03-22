@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import * as ImagePicker from 'expo-image-picker';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { CategoryItem } from '../components/CategoryItem';
 import { CustomButton } from '../components/CustomButton';
@@ -11,7 +12,7 @@ import { RECIPE_CATEGORIES } from '../constants/categories';
 import { COLORS, FONT_SIZE, LAYOUT, SPACING } from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
 import { AppTabsParamList } from '../navigation/types';
-import { createRecipe } from '../services/supabase';
+import { createRecipe, uploadRecipeImage } from '../services/supabase';
 import { Ingredient } from '../types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -40,12 +41,14 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<string>('Desayuno');
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [preparation, setPreparation] = useState('');
   const [ingredients, setIngredients] = useState<EditableIngredient[]>([buildNewIngredient()]);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [activeIngredientId, setActiveIngredientId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const updateIngredient = (ingredientId: string, field: 'name' | 'quantity', value: string) => {
     setIngredients((previous) =>
@@ -124,6 +127,27 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
     setActiveIngredientId(null);
   };
 
+  const handleSelectImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setImageUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo seleccionar la imagen.');
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageUri(null);
+  };
+
   const handleSubmit = async () => {
     if (!user) {
       Alert.alert('Sesión requerida', 'Debes iniciar sesión para crear recetas.');
@@ -133,11 +157,24 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
     try {
       setIsSaving(true);
 
+      // Si hay imagen, subirla primero
+      let finalImageUrl = imageUrl;
+      if (imageUri) {
+        try {
+          setIsUploadingImage(true);
+          // Generar un ID temporal para la imagen
+          const tempRecipeId = `recipe-${Date.now()}`;
+          finalImageUrl = await uploadRecipeImage(imageUri, tempRecipeId);
+        } finally {
+          setIsUploadingImage(false);
+        }
+      }
+
       await createRecipe(
         {
           title,
           category,
-          imageUrl,
+          imageUrl: finalImageUrl,
           ingredients,
           preparation,
         },
@@ -148,6 +185,7 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
 
       setTitle('');
       setCategory('Desayuno');
+      setImageUri(null);
       setImageUrl('');
       setPreparation('');
       setIngredients([buildNewIngredient()]);
@@ -175,11 +213,34 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
           ))}
         </ScrollView>
 
+        <Text style={styles.label}>Imagen</Text>
+        <View style={styles.imageSelector}>
+          {imageUri ? (
+            <View style={styles.imagePreviewContainer}>
+              <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+              <Pressable onPress={handleRemoveImage} style={styles.removeImageButton}>
+                <Ionicons color="#FFFFFF" name="close-circle" size={24} />
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              onPress={handleSelectImage}
+              disabled={isUploadingImage}
+              style={[styles.selectImageButton, isUploadingImage && styles.selectImageButtonDisabled]}
+            >
+              <Ionicons color={COLORS.primary} name="image-outline" size={32} />
+              <Text style={styles.selectImageButtonText}>
+                {isUploadingImage ? 'Subiendo imagen...' : 'Selecciona una imagen'}
+              </Text>
+            </Pressable>
+          )}
+        </View>
+
         <CustomInput
           autoCapitalize="none"
-          label="Imagen"
+          label="O pega una URL de imagen"
           onChangeText={setImageUrl}
-          placeholder="URL de imagen"
+          placeholder="Opcional: https://..."
           value={imageUrl}
         />
 
@@ -388,5 +449,45 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.xs,
     color: COLORS.danger,
     fontWeight: '500',
+  },
+  imageSelector: {
+    marginBottom: SPACING.md,
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: SPACING.sm,
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    backgroundColor: COLORS.inputBackground,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: SPACING.sm,
+    right: SPACING.sm,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  selectImageButton: {
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    padding: SPACING.lg,
+    alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.softPrimary,
+  },
+  selectImageButtonDisabled: {
+    opacity: 0.6,
+  },
+  selectImageButtonText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });

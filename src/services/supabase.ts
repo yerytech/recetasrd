@@ -2,6 +2,7 @@ import 'react-native-url-polyfill/auto';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, User as SupabaseAuthUser } from '@supabase/supabase-js';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 import { MOCK_COMMENTS, MOCK_RATINGS, MOCK_RECIPES, MOCK_USERS } from '../constants/mockData';
 import { Database, Json } from '../types/supabase';
@@ -525,4 +526,113 @@ export const addRating = async (recipeId: string, userId: string, value: number)
   }
 
   return mapRatingRow(data as RatingRow);
+};
+
+export const deleteRecipe = async (recipeId: string, userId: string): Promise<void> => {
+  if (!supabase) {
+    const recipeIndex = localRecipes.findIndex((recipe) => recipe.id === recipeId);
+    
+    if (recipeIndex === -1) {
+      throw new Error('Receta no encontrada.');
+    }
+
+    const recipe = localRecipes[recipeIndex];
+    if (recipe.authorId !== userId) {
+      throw new Error('Solo el autor puede eliminar la receta.');
+    }
+
+    localRecipes.splice(recipeIndex, 1);
+    localComments = localComments.filter((comment) => comment.recipeId !== recipeId);
+    localRatings = localRatings.filter((rating) => rating.recipeId !== recipeId);
+    return;
+  }
+
+  try {
+    // Verificar que el usuario es el autor
+    const { data: recipeData, error: fetchError } = await supabase
+      .from('recipes')
+      .select('author_id')
+      .eq('id', recipeId)
+      .single();
+
+    if (fetchError || !recipeData) {
+      throw new Error('Receta no encontrada.');
+    }
+
+    if (recipeData.author_id !== userId) {
+      throw new Error('Solo el autor puede eliminar la receta.');
+    }
+
+    // Eliminar la receta y sus comentarios/ratings relacionados
+    const { error: deleteError } = await supabase
+      .from('recipes')
+      .delete()
+      .eq('id', recipeId);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    // Limpiar comentarios orphaned (opcional, depende de tu BD constraints)
+    await supabase
+      .from('comments')
+      .delete()
+      .eq('recipe_id', recipeId);
+
+    // Limpiar ratings orphaned
+    await supabase
+      .from('ratings')
+      .delete()
+      .eq('recipe_id', recipeId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'No se pudo eliminar la receta.';
+    throw new Error(message);
+  }
+};
+
+export const uploadRecipeImage = async (imageUri: string, recipeId: string): Promise<string> => {
+  if (!supabase) {
+    return imageUri;
+  }
+
+  try {
+    // Comprimir imagen
+    const compressedResult = await ImageManipulator.manipulateAsync(
+      imageUri,
+      [{ resize: { width: 600, height: 400 } }],
+      { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
+    );
+
+    const fileResponse = await fetch(compressedResult.uri);
+    const fileBlob = await fileResponse.blob();
+
+    // Generar nombre único
+    const fileName = `recipes/${recipeId}/image-${Date.now()}.jpg`;
+
+    // Subir a Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('recipe-images')
+      .upload(fileName, fileBlob, {
+        contentType: 'image/jpeg',
+        upsert: true,
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    // Generar URL pública
+    const { data: publicUrlData } = supabase.storage
+      .from('recipe-images')
+      .getPublicUrl(fileName);
+
+    if (!publicUrlData?.publicUrl) {
+      throw new Error('No se pudo generar URL pública para la imagen.');
+    }
+
+    return publicUrlData.publicUrl;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'No se pudo subir la imagen.';
+    throw new Error(message);
+  }
 };

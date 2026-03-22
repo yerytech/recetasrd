@@ -2,100 +2,73 @@ import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CategoryCard } from '../components/CategoryCard';
 import { RecipeListItem } from '../components/RecipeListItem';
 import { SearchInput } from '../components/SearchInput';
 import { AppTabsParamList, RootStackParamList } from '../navigation/types';
+import { useRecipes } from '../hooks/useRecipes';
 
 type Props = BottomTabScreenProps<AppTabsParamList, 'HomeTab'>;
 
-interface Category {
-  id: string;
-  name: string;
-  imageUrl: string;
-}
-
-interface PopularRecipe {
-  id: string;
-  name: string;
-  rating: number;
-  imageUrl: string;
-  isFavorite?: boolean;
-}
-
-const CATEGORIES: Category[] = [
-  {
-    id: 'cat-1',
-    name: 'Desayunos',
-    imageUrl:
-      'https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    id: 'cat-2',
-    name: 'Almuerzos',
-    imageUrl:
-      'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    id: 'cat-3',
-    name: 'Cena',
-    imageUrl:
-      'https://images.unsplash.com/photo-1518492104633-130d0cc84637?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    id: 'cat-4',
-    name: 'Postres',
-    imageUrl:
-      'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=200&q=80',
-  },
-];
-
-const POPULAR_RECIPES: PopularRecipe[] = [
-  {
-    id: 'receta-1',
-    name: 'Mangú con los 3 golpes',
-    rating: 4.6,
-    imageUrl:
-      'https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=200&q=80',
-    isFavorite: true,
-  },
-  {
-    id: 'receta-2',
-    name: 'Sancocho Dominicano',
-    rating: 4.9,
-    imageUrl:
-      'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=200&q=80',
-    isFavorite: false,
-  },
-  {
-    id: 'receta-4',
-    name: 'Habichuelas con dulce',
-    rating: 4.7,
-    imageUrl:
-      'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=200&q=80',
-    isFavorite: true,
-  },
-];
-
 /**
- * Home principal con layout minimalista de recetas.
+ * Home principal con datos de la base de datos.
  */
 export const HomeScreen = ({ navigation }: Props) => {
   const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [search, setSearch] = useState('');
+  const { recipes, isLoading, error, setSearch: setRecipeSearch } = useRecipes();
 
-  const handleCategoryPress = (categoryId: string) => {
+  // Actualizar búsqueda en el hook
+  const handleSearch = (text: string) => {
+    setSearch(text);
+    setRecipeSearch(text);
+  };
+
+  // Categorías fijas con imágenes específicas
+  const CATEGORIES = [
+    {
+      id: 'cat-1',
+      name: 'Desayuno',
+      imageUrl: recipes.find(r => r.category === 'Desayuno')?.imageUrl ||
+        'https://images.unsplash.com/photo-1533189549336-2a0aef5e2c4d?auto=format&fit=crop&w=300&q=80',
+    },
+    {
+      id: 'cat-2',
+      name: 'Almuerzo',
+      imageUrl: recipes.find(r => r.category === 'Almuerzo')?.imageUrl ||
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80',
+    },
+    {
+      id: 'cat-3',
+      name: 'Cena',
+      imageUrl: recipes.find(r => r.category === 'Cena')?.imageUrl ||
+        'https://images.unsplash.com/photo-1555939594-58d7cb561404?auto=format&fit=crop&w=300&q=80',
+    },
+    {
+      id: 'cat-4',
+      name: 'Postres',
+      imageUrl: recipes.find(r => r.category === 'Postres')?.imageUrl ||
+        'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=300&q=80',
+    },
+  ];
+
+  // Recetas populares ordenadas por rating
+  const popularRecipes = [...recipes]
+    .sort((a, b) => b.averageRating - a.averageRating)
+    .slice(0, 5);
+
+  const handleCategoryPress = (categoryName: string) => {
     const categoryMap: Record<string, 'Desayuno' | 'Almuerzo' | 'Cena' | 'Postres'> = {
-      'cat-1': 'Desayuno',
-      'cat-2': 'Almuerzo',
-      'cat-3': 'Cena',
-      'cat-4': 'Postres',
+      'Desayuno': 'Desayuno',
+      'Almuerzo': 'Almuerzo',
+      'Cena': 'Cena',
+      'Postres': 'Postres',
     };
     
-    const route = categoryMap[categoryId];
+    const route = categoryMap[categoryName as keyof typeof categoryMap];
     if (route) {
       rootNavigation.navigate(route);
     }
@@ -115,40 +88,58 @@ export const HomeScreen = ({ navigation }: Props) => {
 
           <SearchInput
             containerStyle={styles.searchInput}
-            onChangeText={setSearch}
+            onChangeText={handleSearch}
             placeholder="Buscar recetas..."
             value={search}
           />
 
-          <Text style={styles.sectionTitle}>Categorías</Text>
-          <ScrollView
-            contentContainerStyle={styles.categoriesContainer}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-          >
-            {CATEGORIES.map((category) => (
-              <CategoryCard 
-                key={category.id} 
-                imageUrl={category.imageUrl} 
-                title={category.name}
-                onPress={() => handleCategoryPress(category.id)}
-              />
-            ))}
-          </ScrollView>
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
 
-          <Text style={styles.sectionTitle}>Recetas populares</Text>
-          <View style={styles.recipesContainer}>
-            {POPULAR_RECIPES.map((recipe) => (
-              <RecipeListItem
-                imageUrl={recipe.imageUrl}
-                isFavorite={recipe.isFavorite}
-                key={recipe.id}
-                onPress={() => rootNavigation.navigate('RecipeDetail', { recipeId: recipe.id })}
-                rating={recipe.rating}
-                title={recipe.name}
-              />
-            ))}
-          </View>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#C9822B" />
+            </View>
+          ) : (
+            <>
+              <Text style={styles.sectionTitle}>Categorías</Text>
+              <ScrollView
+                contentContainerStyle={styles.categoriesContainer}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+              >
+                {CATEGORIES.map((category) => (
+                  <CategoryCard 
+                    key={category.id} 
+                    imageUrl={category.imageUrl} 
+                    title={category.name}
+                    onPress={() => handleCategoryPress(category.name)}
+                  />
+                ))}
+              </ScrollView>
+
+              <Text style={styles.sectionTitle}>Recetas populares</Text>
+              <View style={styles.recipesContainer}>
+                {popularRecipes.length > 0 ? (
+                  popularRecipes.map((recipe) => (
+                    <RecipeListItem
+                      imageUrl={recipe.imageUrl}
+                      isFavorite={false}
+                      key={recipe.id}
+                      onPress={() => rootNavigation.navigate('RecipeDetail', { recipeId: recipe.id })}
+                      rating={recipe.averageRating}
+                      title={recipe.title}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>No hay recetas disponibles</Text>
+                )}
+              </View>
+            </>
+          )}
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -196,5 +187,27 @@ const styles = StyleSheet.create({
   },
   recipesContainer: {
     paddingBottom: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 100,
+  },
+  errorContainer: {
+    backgroundColor: '#FFE5E5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#D32F2F',
+    fontSize: 14,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#999999',
+    textAlign: 'center',
+    paddingVertical: 20,
   },
 });

@@ -1,21 +1,31 @@
-import { useNavigation } from '@react-navigation/native';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FoodCard } from '../components/FoodCard';
 import { HeaderComponent } from '../components/HeaderComponent';
-import { CENA_FOODS } from '../constants/foodData';
+import { useRecipes } from '../hooks/useRecipes';
+import { RootStackParamList } from '../navigation/types';
 
 export const CenaScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { recipes, isLoading, error } = useRecipes();
+
+  // Filtrar solo cenas
+  const cenas = recipes.filter(recipe => recipe.category === 'Cena');
 
   const renderItem = ({ item }: any) => (
     <View style={styles.cardWrapper}>
       <FoodCard
-        title={item.name}
-        rating={item.rating}
+        title={item.title}
+        rating={item.averageRating}
         imageUrl={item.imageUrl}
+        onPress={() =>
+          navigation.navigate('RecipeDetail', {
+            recipeId: item.id,
+          })
+        }
       />
     </View>
   );
@@ -29,16 +39,30 @@ export const CenaScreen = () => {
         showBackButton={true}
       />
 
-      <FlatList
-        data={CENA_FOODS}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.columnWrapper}
-        contentContainerStyle={styles.listContent}
-        scrollIndicatorInsets={{ right: 1 }}
-        showsVerticalScrollIndicator={false}
-      />
+      {isLoading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#C9822B" />
+        </View>
+      ) : error ? (
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : cenas.length === 0 ? (
+        <View style={styles.centerContainer}>
+          <Text style={styles.emptyText}>No hay cenas disponibles</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={cenas}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+          contentContainerStyle={styles.listContent}
+          scrollIndicatorInsets={{ right: 1 }}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -62,5 +86,21 @@ const styles = StyleSheet.create({
     paddingTop: 34,
     paddingHorizontal: 0,
     paddingBottom: 20,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#D32F2F',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#999999',
+    textAlign: 'center',
   },
 });

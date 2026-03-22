@@ -24,7 +24,7 @@ import { COLORS, FONT_SIZE, SPACING } from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
 import { useShoppingList } from '../hooks/useShoppingList';
 import { LocalRecipeParam, RootStackParamList } from '../navigation/types';
-import { addComment, addRating, getRecipeById } from '../services/supabase';
+import { addComment, addRating, deleteRecipe, getRecipeById } from '../services/supabase';
 import { Recipe } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RecipeDetail'>;
@@ -79,6 +79,7 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const [isAddingToList, setIsAddingToList] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isDeletingRecipe, setIsDeletingRecipe] = useState(false);
 
   const loadRecipe = useCallback(async () => {
     if (localRecipe) {
@@ -186,6 +187,37 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
     }
   };
 
+  const handleDeleteRecipe = () => {
+    if (!recipe || !user) {
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar receta',
+      '¿Estás seguro de que deseas eliminar esta receta? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', onPress: () => {}, style: 'cancel' },
+        {
+          text: 'Eliminar',
+          onPress: async () => {
+            try {
+              setIsDeletingRecipe(true);
+              await deleteRecipe(recipe.id, user.id);
+              Alert.alert('Éxito', 'La receta ha sido eliminada.');
+              navigation.goBack();
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'No se pudo eliminar la receta.';
+              Alert.alert('Error', message);
+            } finally {
+              setIsDeletingRecipe(false);
+            }
+          },
+          style: 'destructive',
+        },
+      ]
+    );
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -222,9 +254,21 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
         <View style={styles.body}>
           <View style={styles.titleRow}>
             <Text style={styles.title}>{recipe.title}</Text>
-            <Pressable hitSlop={10} onPress={handleToggleFavorite} style={styles.favoriteButtonTitle}>
-              <Ionicons color={isFavorite ? COLORS.primary : COLORS.textSecondary} name={isFavorite ? 'heart' : 'heart-outline'} size={24} />
-            </Pressable>
+            <View style={styles.titleActions}>
+              <Pressable hitSlop={10} onPress={handleToggleFavorite} style={styles.favoriteButtonTitle}>
+                <Ionicons color={isFavorite ? COLORS.primary : COLORS.textSecondary} name={isFavorite ? 'heart' : 'heart-outline'} size={24} />
+              </Pressable>
+              {user && recipe.authorId === user.id && (
+                <Pressable
+                  hitSlop={10}
+                  onPress={handleDeleteRecipe}
+                  disabled={isDeletingRecipe}
+                  style={styles.deleteButtonTitle}
+                >
+                  <Ionicons color={COLORS.danger} name="trash-outline" size={24} />
+                </Pressable>
+              )}
+            </View>
           </View>
 
           <View style={styles.ratingSummary}>
@@ -343,6 +387,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.white,
+  },
+  deleteButtonTitle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    marginLeft: SPACING.sm,
+  },
+  titleActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   ratingSummary: {
     flexDirection: 'row',
