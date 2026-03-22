@@ -2,7 +2,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -33,6 +32,9 @@ export const LoginScreen = ({ navigation }: Props) => {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSocialModal, setShowSocialModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   const handleSocialPress = () => {
     setShowSocialModal(true);
   };
@@ -43,7 +45,8 @@ export const LoginScreen = ({ navigation }: Props) => {
       await login(email, password);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo iniciar sesión.';
-      Alert.alert('Error', message);
+      setErrorMessage(message);
+      setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -147,6 +150,28 @@ export const LoginScreen = ({ navigation }: Props) => {
               </Text>
               <Pressable style={styles.modalButton} onPress={() => setShowSocialModal(false)}>
                 <Text style={styles.modalButtonText}>Entendido</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          animationType="fade"
+          transparent
+          visible={showErrorModal}
+          onRequestClose={() => setShowErrorModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowErrorModal(false)} />
+            <View style={styles.errorModalCard}>
+              <View style={styles.errorIconContainer}>
+                <Ionicons name="alert-circle" size={48} color="#C47F2A" />
+              </View>
+              <Text style={styles.errorModalTitle}>Error de Credenciales</Text>
+              <Text style={styles.errorModalMessage}>{errorMessage}</Text>
+              <Text style={styles.errorModalHint}>Por favor revisa tu correo y contraseña.</Text>
+              <Pressable style={styles.errorModalButton} onPress={() => setShowErrorModal(false)}>
+                <Text style={styles.errorModalButtonText}>Intentar de Nuevo</Text>
               </Pressable>
             </View>
           </View>
@@ -310,6 +335,62 @@ const styles = StyleSheet.create({
   },
 
   modalButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+
+  errorModalCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 22,
+    backgroundColor: '#FFF6EA',
+    padding: 24,
+    borderWidth: 2,
+    borderColor: '#C47F2A',
+    elevation: 4,
+    alignItems: 'center',
+  },
+
+  errorIconContainer: {
+    marginBottom: 16,
+  },
+
+  errorModalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#C47F2A',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+
+  errorModalMessage: {
+    fontSize: 16,
+    color: '#5A3A14',
+    textAlign: 'center',
+    lineHeight: 24,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+
+  errorModalHint: {
+    fontSize: 14,
+    color: '#7A4E1D',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+
+  errorModalButton: {
+    backgroundColor: '#C47F2A',
+    borderRadius: 28,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    width: '100%',
+  },
+
+  errorModalButtonText: {
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 15,
