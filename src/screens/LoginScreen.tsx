@@ -5,6 +5,7 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -31,6 +32,10 @@ export const LoginScreen = ({ navigation }: Props) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSocialModal, setShowSocialModal] = useState(false);
+  const handleSocialPress = () => {
+    setShowSocialModal(true);
+  };
 
   const handleLogin = async () => {
     try {
@@ -109,12 +114,12 @@ export const LoginScreen = ({ navigation }: Props) => {
 
             {/* SOCIAL */}
             <View style={styles.socialContainer}>
-              <View style={styles.socialBtn}>
+              <Pressable style={styles.socialBtn} onPress={handleSocialPress}>
                 <Image resizeMode="contain" source={googleIcon} style={styles.socialIcon} />
-              </View>
-              <View style={styles.socialBtn}>
+              </Pressable>
+              <Pressable style={styles.socialBtn} onPress={handleSocialPress}>
                 <Image resizeMode="contain" source={appleIcon} style={styles.socialIcon} />
-              </View>
+              </Pressable>
             </View>
 
             {/* REGISTER */}
@@ -126,6 +131,26 @@ export const LoginScreen = ({ navigation }: Props) => {
             </Pressable>
           </ScrollView>
         </KeyboardAvoidingView>
+
+        <Modal
+          animationType="fade"
+          transparent
+          visible={showSocialModal}
+          onRequestClose={() => setShowSocialModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowSocialModal(false)} />
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Estamos trabajando</Text>
+              <Text style={styles.modalMessage}>
+                El inicio de sesión con redes sociales estará disponible pronto. Por favor inicia con correo y contraseña.
+              </Text>
+              <Pressable style={styles.modalButton} onPress={() => setShowSocialModal(false)}>
+                <Text style={styles.modalButtonText}>Entendido</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -240,5 +265,53 @@ const styles = StyleSheet.create({
   registerLink: {
     fontWeight: 'bold',
     color: '#e9e9e9',
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 22,
+    backgroundColor: '#FFF6EA',
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(122, 78, 29, 0.15)',
+    elevation: 4,
+  },
+
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#5A3A14',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+
+  modalMessage: {
+    fontSize: 15,
+    color: '#7A4E1D',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 18,
+  },
+
+  modalButton: {
+    backgroundColor: '#C47F2A',
+    borderRadius: 28,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+
+  modalButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
   },
 });
