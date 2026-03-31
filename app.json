@@ -46,6 +46,9 @@
     },
     "web": {
       "favicon": "./assets/logo.png"
-    }
+    },
+    // Configuración para permitir que otros puedan abrir links de la app
+    // Cuando alguien comparta una receta, puede abrirse directamente en la app
+    "scheme": "recetasrd"
   }
 }
