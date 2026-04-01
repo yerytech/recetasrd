@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { STORAGE_KEYS } from '../constants/storage';
-import { Ingredient, ShoppingItem } from '../types';
+import { Ingredient, LocationPoint, ShoppingItem } from '../types';
 
 type ShoppingListContextValue = {
   items: ShoppingItem[];
@@ -15,6 +15,67 @@ type ShoppingListContextValue = {
 export const ShoppingListContext = createContext<ShoppingListContextValue | undefined>(undefined);
 
 const generateItemId = (): string => `shopping-item-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+const ensureUniqueIds = (shoppingItems: ShoppingItem[]): ShoppingItem[] => {
+  const usedIds = new Set<string>();
+
+  return shoppingItems.map((item) => {
+    let nextId = item.id?.trim() || generateItemId();
+
+    while (usedIds.has(nextId)) {
+      nextId = generateItemId();
+    }
+
+    usedIds.add(nextId);
+
+    return {
+      ...item,
+      id: nextId,
+    };
+  });
+};
+
+const isLocationPoint = (value: unknown): value is LocationPoint => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const location = value as { address?: unknown; latitude?: unknown; longitude?: unknown };
+
+  return (
+    typeof location.address === 'string' &&
+    typeof location.latitude === 'number' &&
+    typeof location.longitude === 'number'
+  );
+};
+
+const normalizePurchaseLocations = (rawLocations: unknown, legacyLocation?: unknown): LocationPoint[] => {
+  if (Array.isArray(rawLocations)) {
+    return rawLocations.filter(isLocationPoint);
+  }
+
+  return isLocationPoint(legacyLocation) ? [legacyLocation] : [];
+};
+
+const normalizeShoppingItems = (items: unknown): ShoppingItem[] => {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .filter((item) => item && typeof item === 'object')
+    .map((item) => {
+      const candidate = item as ShoppingItem & {
+        purchaseLocation?: unknown;
+        purchaseLocations?: unknown;
+      };
+
+      return {
+        ...candidate,
+        purchaseLocations: normalizePurchaseLocations(candidate.purchaseLocations, candidate.purchaseLocation),
+      };
+    });
+};
 
 /**
  * Proveedor de estado global para lista de compras.
@@ -33,8 +94,13 @@ export const ShoppingListProvider = ({ children }: PropsWithChildren) => {
       const rawItems = await AsyncStorage.getItem(STORAGE_KEYS.shoppingList);
 
       if (rawItems) {
-        const parsedItems = JSON.parse(rawItems) as ShoppingItem[];
-        setItems(parsedItems);
+        const parsedItems = normalizeShoppingItems(JSON.parse(rawItems));
+        const normalizedItems = ensureUniqueIds(parsedItems);
+        setItems(normalizedItems);
+
+        if (normalizedItems.some((item, index) => item.id !== parsedItems[index]?.id)) {
+          await AsyncStorage.setItem(STORAGE_KEYS.shoppingList, JSON.stringify(normalizedItems));
+        }
       }
     } catch {
       setItems([]);
@@ -67,9 +133,10 @@ export const ShoppingListProvider = ({ children }: PropsWithChildren) => {
 
         if (!exists) {
           nextItems.push({
-            id: ingredient.id || generateItemId(),
+            id: generateItemId(),
             name: ingredient.name.trim(),
             quantity: ingredient.quantity.trim(),
+            purchaseLocations: ingredient.purchaseLocations ?? [],
             completed: false,
             recipeId,
             recipeTitle,
@@ -77,7 +144,7 @@ export const ShoppingListProvider = ({ children }: PropsWithChildren) => {
         }
       });
 
-      await saveItems(nextItems);
+      await saveItems(ensureUniqueIds(nextItems));
     },
     [items, saveItems],
   );

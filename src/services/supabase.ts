@@ -6,7 +6,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 
 import { MOCK_COMMENTS, MOCK_RATINGS, MOCK_RECIPES, MOCK_USERS } from '../constants/mockData';
 import { Database, Json } from '../types/supabase';
-import { Comment, Ingredient, Rating, Recipe, RegisterPayload, User } from '../types';
+import { Comment, Ingredient, LocationPoint, Rating, Recipe, RegisterPayload, User } from '../types';
 import { calculateAverageRating } from '../utils/ratings';
 
 type EnvironmentLike = {
@@ -15,11 +15,7 @@ type EnvironmentLike = {
   };
 };
 
-type RecipeLocation = {
-  address: string;
-  latitude: number;
-  longitude: number;
-};
+type RecipeLocation = LocationPoint;
 
 type CreateRecipeInput = {
   title: string;
@@ -75,16 +71,17 @@ const normalizeIngredient = (ingredient: unknown, index: number): Ingredient => 
       id?: unknown;
       name?: unknown;
       quantity?: unknown;
+      purchaseLocations?: unknown;
       purchaseLocation?: unknown;
     };
 
-    const purchaseLocation = parseLocationData(objectIngredient.purchaseLocation);
+    const purchaseLocations = parseIngredientLocations(objectIngredient.purchaseLocations, objectIngredient.purchaseLocation);
 
     return {
       id: typeof objectIngredient.id === 'string' ? objectIngredient.id : generateId(`ingredient-${index}`),
       name: typeof objectIngredient.name === 'string' ? objectIngredient.name : 'Ingrediente',
       quantity: typeof objectIngredient.quantity === 'string' ? objectIngredient.quantity : '',
-      purchaseLocation,
+      purchaseLocations,
     };
   }
 
@@ -127,6 +124,17 @@ const parseLocationData = (location: unknown): RecipeLocation | null => {
     latitude: maybeLocation.latitude,
     longitude: maybeLocation.longitude,
   };
+};
+
+const parseIngredientLocations = (locations: unknown, legacyLocation?: unknown): LocationPoint[] => {
+  if (Array.isArray(locations)) {
+    return locations
+      .map((location) => parseLocationData(location))
+      .filter((location): location is LocationPoint => Boolean(location));
+  }
+
+  const singleLocation = parseLocationData(legacyLocation);
+  return singleLocation ? [singleLocation] : [];
 };
 
 const mapCommentRow = (row: CommentRow): Comment => ({
@@ -431,6 +439,98 @@ export const createRecipe = async (payload: CreateRecipeInput, userId: string): 
   }
 
   return mapRecipeRow(data as RecipeRow, [], []);
+};
+
+export const updateRecipe = async (
+  recipeId: string,
+  payload: CreateRecipeInput,
+  userId: string,
+): Promise<Recipe> => {
+  const title = payload.title.trim();
+  const category = payload.category.trim();
+  const preparation = payload.preparation.trim();
+
+  if (!title || !category || !preparation) {
+    throw new Error('Completa nombre, categoría y preparación.');
+  }
+
+  const cleanIngredients = payload.ingredients.filter((ingredient) => ingredient.name.trim());
+
+  if (!cleanIngredients.length) {
+    throw new Error('Agrega al menos un ingrediente.');
+  }
+
+  if (!supabase) {
+    const recipeIndex = localRecipes.findIndex((recipe) => recipe.id === recipeId);
+
+    if (recipeIndex === -1) {
+      throw new Error('Receta no encontrada.');
+    }
+
+    const currentRecipe = localRecipes[recipeIndex];
+
+    if (currentRecipe.authorId !== userId) {
+      throw new Error('Solo el autor puede editar la receta.');
+    }
+
+    const updatedRecipe: Recipe = {
+      ...currentRecipe,
+      title,
+      category,
+      imageUrl: payload.imageUrl.trim() || DEFAULT_RECIPE_IMAGE,
+      ingredients: cleanIngredients,
+      preparation,
+      location: payload.location || null,
+    };
+
+    localRecipes[recipeIndex] = updatedRecipe;
+    return updatedRecipe;
+  }
+
+  const { data, error } = await supabase
+    .from('recipes')
+    .update({
+      title,
+      category,
+      image_url: payload.imageUrl.trim() || DEFAULT_RECIPE_IMAGE,
+      ingredients: cleanIngredients as unknown as Json,
+      preparation,
+      location_data: (payload.location || null) as Json,
+    })
+    .eq('id', recipeId)
+    .eq('author_id', userId)
+    .select('id, title, category, image_url, ingredients, preparation, author_id, location_data, created_at')
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message ?? 'No se pudo actualizar la receta.');
+  }
+
+  if (!data) {
+    throw new Error('No tienes permisos para editar esta receta o no existe.');
+  }
+
+  const [commentsResult, ratingsResult] = await Promise.all([
+    supabase
+      .from('comments')
+      .select('id, recipe_id, user_id, user_name, content, created_at')
+      .eq('recipe_id', recipeId)
+      .order('created_at', { ascending: false }),
+    supabase.from('ratings').select('id, recipe_id, user_id, value, created_at').eq('recipe_id', recipeId),
+  ]);
+
+  if (commentsResult.error) {
+    throw commentsResult.error;
+  }
+
+  if (ratingsResult.error) {
+    throw ratingsResult.error;
+  }
+
+  const comments = ((commentsResult.data ?? []) as CommentRow[]).map(mapCommentRow);
+  const ratings = ((ratingsResult.data ?? []) as RatingRow[]).map(mapRatingRow);
+
+  return mapRecipeRow(data as RecipeRow, comments, ratings);
 };
 
 export const addComment = async (

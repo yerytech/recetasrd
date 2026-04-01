@@ -2,6 +2,9 @@
  * Tipos de rutas para navegación.
  */
 
+import { NavigatorScreenParams } from '@react-navigation/native';
+import { LocationPoint } from '../types';
+
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
@@ -11,7 +14,7 @@ export type AuthStackParamList = {
 export type AppTabsParamList = {
   HomeTab: undefined;
   SearchTab: undefined;
-  AddTab: undefined;
+  AddTab: { recipeId?: string } | undefined;
   ShoppingListTab: undefined;
   ProfileTab: undefined;
 };
@@ -28,8 +31,12 @@ export type LocalRecipeParam = {
 
 export type RootStackParamList = {
   Auth: undefined;
-  App: undefined;
+  App: NavigatorScreenParams<AppTabsParamList> | undefined;
   RecipeDetail: { recipeId: string; localRecipe?: LocalRecipeParam };
+  IngredientLocations: {
+    ingredientName: string;
+    locations: LocationPoint[];
+  };
   Desayuno: undefined;
   Almuerzo: undefined;
   Cena: undefined;

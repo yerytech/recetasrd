@@ -9,15 +9,17 @@ export interface User {
   avatarUrl?: string | null;
 }
 
+export interface LocationPoint {
+  address: string;
+  latitude: number;
+  longitude: number;
+}
+
 export interface Ingredient {
   id: string;
   name: string;
   quantity: string;
-  purchaseLocation?: {
-    address: string;
-    latitude: number;
-    longitude: number;
-  } | null;
+  purchaseLocations?: LocationPoint[];
 }
 
 export interface Comment {
@@ -48,11 +50,7 @@ export interface Recipe {
   averageRating: number;
   ratingsCount: number;
   comments: Comment[];
-    location?: {
-      address: string;
-      latitude: number;
-      longitude: number;
-    } | null;
+  location?: LocationPoint | null;
   createdAt: string;
 }
 

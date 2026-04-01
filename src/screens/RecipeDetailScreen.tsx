@@ -187,6 +187,19 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
     }
   };
 
+  const handleEditRecipe = () => {
+    if (!recipe || !user) {
+      return;
+    }
+
+    navigation.navigate('App', {
+      screen: 'AddTab',
+      params: {
+        recipeId: recipe.id,
+      },
+    });
+  };
+
   const handleDeleteRecipe = () => {
     if (!recipe || !user) {
       return;
@@ -259,14 +272,19 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
                 <Ionicons color={isFavorite ? COLORS.primary : COLORS.textSecondary} name={isFavorite ? 'heart' : 'heart-outline'} size={24} />
               </Pressable>
               {user && recipe.authorId === user.id && (
-                <Pressable
-                  hitSlop={10}
-                  onPress={handleDeleteRecipe}
-                  disabled={isDeletingRecipe}
-                  style={styles.deleteButtonTitle}
-                >
-                  <Ionicons color={COLORS.danger} name="trash-outline" size={24} />
-                </Pressable>
+                <>
+                  <Pressable hitSlop={10} onPress={handleEditRecipe} style={styles.editButtonTitle}>
+                    <Ionicons color={COLORS.primary} name="create-outline" size={22} />
+                  </Pressable>
+                  <Pressable
+                    hitSlop={10}
+                    onPress={handleDeleteRecipe}
+                    disabled={isDeletingRecipe}
+                    style={styles.deleteButtonTitle}
+                  >
+                    <Ionicons color={COLORS.danger} name="trash-outline" size={24} />
+                  </Pressable>
+                </>
               )}
             </View>
           </View>
@@ -387,6 +405,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.white,
+  },
+  editButtonTitle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    marginLeft: SPACING.sm,
   },
   deleteButtonTitle: {
     width: 38,

@@ -21,8 +21,29 @@ type Props = BottomTabScreenProps<AppTabsParamList, 'ShoppingListTab'>;
 /**
  * Lista de compras persistente con checklist de ingredientes.
  */
-export const ShoppingListScreen = ({}: Props) => {
+export const ShoppingListScreen = ({ navigation }: Props) => {
   const { items, toggleItem, removeItem } = useShoppingList();
+
+  const openMapForIngredient = (item: ShoppingItem) => {
+    const locations = item.purchaseLocations ?? [];
+
+    if (!locations.length) {
+      Alert.alert('Sin ubicación', 'Este ingrediente no tiene una ubicación de compra guardada.');
+      return;
+    }
+
+    const parentNavigation = navigation.getParent();
+
+    if (!parentNavigation) {
+      Alert.alert('Error', 'No se pudo abrir la pantalla de ubicaciones.');
+      return;
+    }
+
+    parentNavigation.navigate('IngredientLocations' as never, {
+      ingredientName: item.name,
+      locations,
+    } as never);
+  };
 
   const renderItem = ({ item }: { item: ShoppingItem }) => (
     <View style={styles.itemContainer}>
@@ -40,6 +61,38 @@ export const ShoppingListScreen = ({}: Props) => {
         <Text style={[styles.itemName, item.completed && styles.itemNameDone]}>{item.name}</Text>
         <Text style={styles.itemQuantity}>{item.quantity}</Text>
         <Text style={styles.recipeTitle}>{item.recipeTitle}</Text>
+
+        <View style={styles.locationRow}>
+          <View
+            style={[
+              styles.locationBadge,
+              !(item.purchaseLocations?.length ?? 0) && styles.locationBadgeDisabled,
+            ]}
+          >
+            <Ionicons
+              color={(item.purchaseLocations?.length ?? 0) ? COLORS.primary : COLORS.textSecondary}
+              name={(item.purchaseLocations?.length ?? 0) ? 'location' : 'location-outline'}
+              size={14}
+            />
+          </View>
+          <Text style={styles.locationText}>
+            {(item.purchaseLocations?.length ?? 0)
+              ? `${item.purchaseLocations?.length ?? 0} ubicaciones de compra`
+              : 'Sin coordenadas de compra'}
+          </Text>
+
+          <Pressable
+            hitSlop={10}
+            onPress={() => openMapForIngredient(item)}
+            style={[
+              styles.mapButton,
+              !(item.purchaseLocations?.length ?? 0) && styles.mapButtonDisabled,
+            ]}
+          >
+            <Ionicons color={COLORS.white} name="navigate" size={16} />
+            <Text style={styles.mapButtonLabel}>Ver ubicaciones</Text>
+          </Pressable>
+        </View>
       </View>
 
       <Pressable hitSlop={10} onPress={() => removeItem(item.id)}>
@@ -179,6 +232,63 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: FONT_SIZE.xs,
     fontWeight: '600',
+  },
+  locationRow: {
+    marginTop: SPACING.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  locationText: {
+    flex: 1,
+    color: COLORS.textPrimary,
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '600',
+  },
+  locationBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.softPrimary,
+    borderWidth: 1,
+    borderColor: COLORS.secondary,
+  },
+  locationBadgeDisabled: {
+    backgroundColor: COLORS.inputBackground,
+    borderColor: COLORS.border,
+  },
+  mapButton: {
+    marginLeft: SPACING.xs,
+    minWidth: 110,
+    height: 34,
+    borderRadius: 17,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.primary,
+    borderWidth: 1,
+    borderColor: '#D76400',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  mapButtonDisabled: {
+    backgroundColor: COLORS.textSecondary,
+    borderColor: COLORS.textSecondary,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  mapButtonLabel: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   emptyContainer: {
     paddingTop: SPACING.xl,

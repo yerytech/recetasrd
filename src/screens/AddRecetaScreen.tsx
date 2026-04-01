@@ -1,8 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { useMemo, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { CategoryItem } from '../components/CategoryItem';
 import { CustomButton } from '../components/CustomButton';
@@ -11,14 +21,15 @@ import { LocationPickerModal } from '../components/LocationPickerModal';
 import { RECIPE_CATEGORIES } from '../constants/categories';
 import { COLORS, FONT_SIZE, LAYOUT, SPACING } from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
-import { AppTabsParamList } from '../navigation/types';
-import { createRecipe, uploadRecipeImage } from '../services/supabase';
-import { Ingredient } from '../types';
+import { AppTabsParamList, RootStackParamList } from '../navigation/types';
+import { createRecipe, getRecipeById, updateRecipe, uploadRecipeImage } from '../services/supabase';
+import { Ingredient, LocationPoint } from '../types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = BottomTabScreenProps<AppTabsParamList, 'AddTab'>;
 
 type EditableIngredient = Ingredient;
+type LocationTarget = 'recipe' | 'ingredient' | null;
 
 interface LocationData {
   address: string;
@@ -32,23 +43,48 @@ const buildNewIngredient = (): EditableIngredient => ({
   id: `ingredient-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
   name: '',
   quantity: '',
-  purchaseLocation: null,
+  purchaseLocations: [],
 });
 
-export const AddRecetaScreen = ({ navigation }: Props) => {
+const mapLocationData = (locationData: LocationData): LocationPoint => ({
+  address: locationData.address,
+  latitude: locationData.coordinates.latitude,
+  longitude: locationData.coordinates.longitude,
+});
+
+const isSameLocation = (first: LocationPoint, second: LocationPoint): boolean =>
+  first.address === second.address && first.latitude === second.latitude && first.longitude === second.longitude;
+
+export const AddRecetaScreen = ({ navigation, route }: Props) => {
   const { user } = useAuth();
+  const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
   const categories = useMemo(() => RECIPE_CATEGORIES.filter((category) => category !== 'Todas'), []);
+  const recipeIdToEdit = route.params?.recipeId;
+  const isEditMode = Boolean(recipeIdToEdit);
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<string>('Desayuno');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [preparation, setPreparation] = useState('');
+  const [recipeLocation, setRecipeLocation] = useState<LocationPoint | null>(null);
   const [ingredients, setIngredients] = useState<EditableIngredient[]>([buildNewIngredient()]);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
+  const [activeLocationTarget, setActiveLocationTarget] = useState<LocationTarget>(null);
   const [activeIngredientId, setActiveIngredientId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
+
+  const resetForm = useCallback(() => {
+    setTitle('');
+    setCategory('Desayuno');
+    setImageUri(null);
+    setImageUrl('');
+    setPreparation('');
+    setRecipeLocation(null);
+    setIngredients([buildNewIngredient()]);
+  }, []);
 
   const updateIngredient = (ingredientId: string, field: 'name' | 'quantity', value: string) => {
     setIngredients((previous) =>
@@ -64,29 +100,31 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
   };
 
   const updateIngredientLocation = (ingredientId: string, locationData: LocationData) => {
+    const nextLocation = mapLocationData(locationData);
+
     setIngredients((previous) =>
       previous.map((ingredient) =>
         ingredient.id === ingredientId
           ? {
               ...ingredient,
-              purchaseLocation: {
-                address: locationData.address,
-                latitude: locationData.coordinates.latitude,
-                longitude: locationData.coordinates.longitude,
-              },
+              purchaseLocations: ingredient.purchaseLocations?.some((location) => isSameLocation(location, nextLocation))
+                ? ingredient.purchaseLocations
+                : [...(ingredient.purchaseLocations ?? []), nextLocation],
             }
           : ingredient,
       ),
     );
   };
 
-  const clearIngredientLocation = (ingredientId: string) => {
+  const removeIngredientLocation = (ingredientId: string, locationToRemove: LocationPoint) => {
     setIngredients((previous) =>
       previous.map((ingredient) =>
         ingredient.id === ingredientId
           ? {
               ...ingredient,
-              purchaseLocation: null,
+              purchaseLocations: (ingredient.purchaseLocations ?? []).filter(
+                (location) => !isSameLocation(location, locationToRemove),
+              ),
             }
           : ingredient,
       ),
@@ -108,24 +146,94 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
   };
 
   const openIngredientLocationPicker = (ingredientId: string) => {
+    setActiveLocationTarget('ingredient');
     setActiveIngredientId(ingredientId);
     setLocationModalVisible(true);
   };
 
+  const openRecipeLocationPicker = () => {
+    setActiveLocationTarget('recipe');
+    setActiveIngredientId(null);
+    setLocationModalVisible(true);
+  };
+
   const handleSelectLocation = (locationData: LocationData) => {
-    if (!activeIngredientId) {
+    if (activeLocationTarget === 'recipe') {
+      setRecipeLocation(mapLocationData(locationData));
+      setLocationModalVisible(false);
+      setActiveLocationTarget(null);
       return;
     }
 
-    updateIngredientLocation(activeIngredientId, locationData);
+    if (activeLocationTarget === 'ingredient' && activeIngredientId) {
+      updateIngredientLocation(activeIngredientId, locationData);
+    }
+
     setActiveIngredientId(null);
+    setActiveLocationTarget(null);
     setLocationModalVisible(false);
   };
 
   const handleCloseLocationModal = () => {
     setLocationModalVisible(false);
     setActiveIngredientId(null);
+    setActiveLocationTarget(null);
   };
+
+  const loadRecipeToEdit = useCallback(async () => {
+    if (!recipeIdToEdit) {
+      return;
+    }
+
+    try {
+      setIsLoadingRecipe(true);
+      const recipe = await getRecipeById(recipeIdToEdit);
+
+      if (!recipe) {
+        Alert.alert('No encontrada', 'La receta que intentas editar no existe.');
+        navigation.navigate('HomeTab');
+        return;
+      }
+
+      if (user && recipe.authorId !== user.id) {
+        Alert.alert('Sin permisos', 'Solo el autor puede editar esta receta.');
+        navigation.navigate('HomeTab');
+        return;
+      }
+
+      setTitle(recipe.title);
+      setCategory(recipe.category);
+      setImageUri(null);
+      setImageUrl(recipe.imageUrl);
+      setPreparation(recipe.preparation);
+      setRecipeLocation(recipe.location ?? null);
+      setIngredients(
+        recipe.ingredients.length
+          ? recipe.ingredients.map((ingredient, index) => ({
+              id: ingredient.id || `${recipe.id}-ingredient-${index + 1}`,
+              name: ingredient.name,
+              quantity: ingredient.quantity,
+              purchaseLocations: ingredient.purchaseLocations ?? [],
+            }))
+          : [buildNewIngredient()],
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo cargar la receta para edición.';
+      Alert.alert('Error', message);
+      navigation.navigate('HomeTab');
+    } finally {
+      setIsLoadingRecipe(false);
+    }
+  }, [navigation, recipeIdToEdit, user]);
+
+  useEffect(() => {
+    if (isEditMode) {
+      void loadRecipeToEdit();
+      return;
+    }
+
+    resetForm();
+  }, [isEditMode, loadRecipeToEdit, resetForm]);
 
   const handleSelectImage = async () => {
     try {
@@ -139,35 +247,54 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
       if (!result.canceled && result.assets[0]) {
         setImageUri(result.assets[0].uri);
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'No se pudo seleccionar la imagen.');
     }
   };
 
   const handleRemoveImage = () => {
     setImageUri(null);
+    setImageUrl('');
   };
 
   const handleSubmit = async () => {
     if (!user) {
-      Alert.alert('Sesión requerida', 'Debes iniciar sesión para crear recetas.');
+      Alert.alert('Sesión requerida', 'Debes iniciar sesión para guardar recetas.');
       return;
     }
 
     try {
       setIsSaving(true);
 
-      // Si hay imagen, subirla primero
-      let finalImageUrl = imageUrl;
+      let finalImageUrl = imageUrl.trim();
       if (imageUri) {
         try {
           setIsUploadingImage(true);
-          // Generar un ID temporal para la imagen
-          const tempRecipeId = `recipe-${Date.now()}`;
-          finalImageUrl = await uploadRecipeImage(imageUri, tempRecipeId);
+          const targetRecipeId = recipeIdToEdit || `recipe-${Date.now()}`;
+          finalImageUrl = await uploadRecipeImage(imageUri, targetRecipeId);
         } finally {
           setIsUploadingImage(false);
         }
+      }
+
+      if (isEditMode && recipeIdToEdit) {
+        await updateRecipe(
+          recipeIdToEdit,
+          {
+            title,
+            category,
+            imageUrl: finalImageUrl,
+            ingredients,
+            preparation,
+            location: recipeLocation,
+          },
+          user.id,
+        );
+
+        Alert.alert('Actualizada', 'La receta se actualizó correctamente.');
+        navigation.setParams({ recipeId: undefined });
+        rootNavigation.navigate('RecipeDetail', { recipeId: recipeIdToEdit });
+        return;
       }
 
       await createRecipe(
@@ -177,19 +304,13 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
           imageUrl: finalImageUrl,
           ingredients,
           preparation,
+          location: recipeLocation,
         },
         user.id,
       );
 
       Alert.alert('Listo', 'Tu receta fue guardada correctamente.');
-
-      setTitle('');
-      setCategory('Desayuno');
-      setImageUri(null);
-      setImageUrl('');
-      setPreparation('');
-      setIngredients([buildNewIngredient()]);
-
+      resetForm();
       navigation.navigate('HomeTab');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo guardar la receta.';
@@ -199,10 +320,21 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
     }
   };
 
+  if (isLoadingRecipe) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingState}>
+          <ActivityIndicator color={COLORS.primary} size="large" />
+          <Text style={styles.loadingStateText}>Cargando receta para editar...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Agregar receta</Text>
+        <Text style={styles.title}>{isEditMode ? 'Editar receta' : 'Agregar receta'}</Text>
 
         <CustomInput label="Nombre" onChangeText={setTitle} placeholder="Ej. Moro de guandules" value={title} />
 
@@ -215,9 +347,9 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
 
         <Text style={styles.label}>Imagen</Text>
         <View style={styles.imageSelector}>
-          {imageUri ? (
+          {imageUri || imageUrl ? (
             <View style={styles.imagePreviewContainer}>
-              <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+              <Image source={{ uri: imageUri || imageUrl }} style={styles.imagePreview} />
               <Pressable onPress={handleRemoveImage} style={styles.removeImageButton}>
                 <Ionicons color="#FFFFFF" name="close-circle" size={24} />
               </Pressable>
@@ -243,6 +375,36 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
           placeholder="Opcional: https://..."
           value={imageUrl}
         />
+
+        <View style={styles.recipeLocationSection}>
+          <Text style={styles.label}>Ubicación general de la receta (opcional)</Text>
+          <Pressable
+            onPress={openRecipeLocationPicker}
+            style={[styles.locationButton, recipeLocation && styles.locationButtonActive]}
+          >
+            <Ionicons
+              name={recipeLocation ? 'location' : 'location-outline'}
+              size={20}
+              color={recipeLocation ? COLORS.primary : COLORS.textSecondary}
+            />
+            <Text style={[styles.locationButtonText, recipeLocation && styles.locationButtonTextActive]}>
+              {recipeLocation ? 'Ubicación seleccionada' : 'Seleccionar ubicación'}
+            </Text>
+          </Pressable>
+
+          {recipeLocation && (
+            <View style={styles.locationInfo}>
+              <Text style={styles.locationAddress}>{recipeLocation.address}</Text>
+              <Text style={styles.locationCoordinates}>
+                {recipeLocation.latitude.toFixed(4)}, {recipeLocation.longitude.toFixed(4)}
+              </Text>
+              <Pressable onPress={() => setRecipeLocation(null)} style={styles.removeLocationButton}>
+                <Ionicons name="close-circle" size={18} color={COLORS.danger} />
+                <Text style={styles.removeLocationText}>Quitar ubicación</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
 
         <View style={styles.ingredientsHeader}>
           <Text style={styles.label}>Ingredientes</Text>
@@ -276,30 +438,40 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
               <Text style={styles.ingredientLocationLabel}>Ubicación de compra</Text>
               <Pressable
                 onPress={() => openIngredientLocationPicker(ingredient.id)}
-                style={[styles.locationButton, ingredient.purchaseLocation && styles.locationButtonActive]}
+                style={[styles.locationButton, (ingredient.purchaseLocations?.length ?? 0) > 0 && styles.locationButtonActive]}
               >
                 <Ionicons
-                  name={ingredient.purchaseLocation ? 'location' : 'location-outline'}
+                  name={(ingredient.purchaseLocations?.length ?? 0) > 0 ? 'location' : 'location-outline'}
                   size={20}
-                  color={ingredient.purchaseLocation ? COLORS.primary : COLORS.textSecondary}
+                  color={(ingredient.purchaseLocations?.length ?? 0) > 0 ? COLORS.primary : COLORS.textSecondary}
                 />
-                <Text style={[styles.locationButtonText, ingredient.purchaseLocation && styles.locationButtonTextActive]}>
-                  {ingredient.purchaseLocation ? 'Ubicación seleccionada' : 'Seleccionar ubicación'}
+                <Text
+                  style={[
+                    styles.locationButtonText,
+                    (ingredient.purchaseLocations?.length ?? 0) > 0 && styles.locationButtonTextActive,
+                  ]}
+                >
+                  {(ingredient.purchaseLocations?.length ?? 0) > 0
+                    ? `Agregar otra ubicación (${ingredient.purchaseLocations?.length ?? 0})`
+                    : 'Seleccionar ubicación'}
                 </Text>
               </Pressable>
 
-              {ingredient.purchaseLocation && (
-                <View style={styles.locationInfo}>
-                  <Text style={styles.locationAddress}>{ingredient.purchaseLocation.address}</Text>
+              {(ingredient.purchaseLocations ?? []).map((location, locationIndex) => (
+                <View key={`${ingredient.id}-${locationIndex}`} style={styles.locationInfo}>
+                  <Text style={styles.locationAddress}>{location.address}</Text>
                   <Text style={styles.locationCoordinates}>
-                    {ingredient.purchaseLocation.latitude.toFixed(4)}, {ingredient.purchaseLocation.longitude.toFixed(4)}
+                    {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
                   </Text>
-                  <Pressable onPress={() => clearIngredientLocation(ingredient.id)} style={styles.removeLocationButton}>
+                  <Pressable
+                    onPress={() => removeIngredientLocation(ingredient.id, location)}
+                    style={styles.removeLocationButton}
+                  >
                     <Ionicons name="close-circle" size={18} color={COLORS.danger} />
                     <Text style={styles.removeLocationText}>Quitar ubicación</Text>
                   </Pressable>
                 </View>
-              )}
+              ))}
             </View>
           </View>
         ))}
@@ -314,7 +486,11 @@ export const AddRecetaScreen = ({ navigation }: Props) => {
           value={preparation}
         />
 
-        <CustomButton loading={isSaving} onPress={handleSubmit} title="Guardar receta" />
+        <CustomButton
+          loading={isSaving}
+          onPress={handleSubmit}
+          title={isEditMode ? 'Guardar cambios' : 'Guardar receta'}
+        />
 
         <LocationPickerModal
           onClose={handleCloseLocationModal}
@@ -336,6 +512,16 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     paddingBottom: SPACING.xl,
   },
+  loadingState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+  },
+  loadingStateText: {
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZE.sm,
+  },
   title: {
     fontSize: FONT_SIZE.xl,
     color: COLORS.textPrimary,
@@ -349,6 +535,9 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   categoriesWrapper: {
+    marginBottom: SPACING.md,
+  },
+  recipeLocationSection: {
     marginBottom: SPACING.md,
   },
   ingredientsHeader: {
