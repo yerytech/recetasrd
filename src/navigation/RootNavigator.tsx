@@ -1,4 +1,4 @@
-import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { DefaultTheme, NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { COLORS } from '../constants/theme';
@@ -29,6 +29,24 @@ const navTheme = {
   },
 };
 
+// Esta configuración permite que cuando alguien comparta una receta mediante un link,
+// la app abra directamente esa pantalla. Ejemplo: si compartes recetasrd://recipe/123,
+// la app abrirá el detalle de esa receta automáticamente
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ['recetasrd://', 'https://recetasrd.app'],
+  config: {
+    screens: {
+      RecipeDetail: 'recipe/:recipeId',
+      App: '',
+      Desayuno: 'desayuno',
+      Almuerzo: 'almuerzo',
+      Cena: 'cena',
+      Postres: 'postres',
+      Auth: 'auth',
+    },
+  },
+};
+
 /**
  * Navegador raíz que separa autenticación del flujo principal.
  */
@@ -40,7 +58,8 @@ export const RootNavigator = () => {
   }
 
   return (
-    <NavigationContainer theme={navTheme}>
+    // deep linking permite que cuando compartan un link de receta, se abra automaticamente en la app
+    <NavigationContainer theme={navTheme} linking={linking} fallback={<SplashScreen />}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
           <>

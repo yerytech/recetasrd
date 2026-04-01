@@ -9,11 +9,13 @@ import {
   Image,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 import { CommentItem } from '../components/CommentItem';
 import { CustomButton } from '../components/CustomButton';
@@ -104,6 +106,7 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
   useEffect(() => {
     void loadRecipe();
   }, [loadRecipe]);
+
 
   useEffect(() => {
     const loadFavoriteStatus = async () => {
@@ -231,6 +234,31 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
     );
   };
 
+  // Esta función permite que el usuario comparta la receta con otros
+  // Cuando la comparte, otros pueden hacer clic en el link para ver la receta en sus apps
+  const handleShare = async () => {
+    if (!recipe) {
+      return;
+    }
+
+    try {
+      // Crear el link que abre la receta directamente en la app
+      // recetasrd://recipe/123 es el "atajo" para esta receta
+      const deepLink = `recetasrd://recipe/${recipe.id}`;
+      // Mensaje atractivo que se ve cuando se comparte
+      const shareMessage = `¡Descubre "${recipe.title}" en RecetasRD!\n\n📱 Abre la app y visualiza esta deliciosa receta con todos los ingredientes y la preparación paso a paso.\n\n¡Es muy fácil!`;
+
+      await Share.share({
+        message: shareMessage,
+        title: recipe.title,
+        url: deepLink,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo compartir la receta.';
+      Alert.alert('Error', message);
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -353,6 +381,11 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
           ) : null}
         </View>
       </ScrollView>
+
+      {/* Botón flotante para compartir la receta - está abajo a la derecha */}
+      <Pressable onPress={handleShare} style={({ pressed }) => [styles.shareButton, pressed && styles.shareButtonPressed]}>
+        <Ionicons color="#FFFFFF" name="share-social" size={24} />
+      </Pressable>
     </SafeAreaView>
   );
 };
@@ -499,4 +532,28 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
   },
+  // Estilos del botón flotante para compartir (el naranja de abajo a la derecha)
+  shareButton: {
+    position: 'absolute', // Se mantiene en posición fija
+    bottom: SPACING.lg,   // 20px desde el fondo
+    right: SPACING.lg,    // 20px desde la derecha
+    width: 56,            // Círculo de 56x56
+    height: 56,
+    borderRadius: 28,     // Lo hacemos circular
+    backgroundColor: COLORS.primary, // Color naranja de la app
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Sombra para que se vea flotante
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  // Estilos cuando el usuario presiona el botón (efecto visual)
+  shareButtonPressed: {
+    opacity: 0.9,           // Un poco más transparente
+    transform: [{ scale: 0.95 }], // Se achica un 5% (efecto click)
+  },
 });
+
