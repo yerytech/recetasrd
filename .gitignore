@@ -46,3 +46,8 @@ yarn-error.*
 
 # docs local files
 /docs
+
+# scripts
+scripts/
+*.sh
+*.sql
