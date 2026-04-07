@@ -104,4 +104,8 @@ supabase/
 	seed.sql
 	reseed_multi_locations.sql
 ```
+## Prototipo en Figma
 
+Puedes visualizar el diseño de la aplicación en el siguiente enlace:
+
+https://www.figma.com/design/27ba0MGRaKlEjGpGIdCGAP/Recetas?node-id=0-1&t=9HBR5WbIXvlaRIhS-1
