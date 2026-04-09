@@ -20,6 +20,7 @@ export const FoodCard = ({
   onFavoritePress,
 }: FoodCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
+  const formattedRating = Number.isFinite(rating) ? rating.toFixed(1) : '0.0';
 
   const handleFavoritePress = () => {
     const newFavorite = !isFavorite;
@@ -50,7 +51,9 @@ export const FoodCard = ({
 
         <View style={styles.ratingContainer}>
           <Ionicons name="star" size={16} color={COLORS.primary} />
-          <Text style={styles.rating}>{rating.toFixed(1)}</Text>
+          <Text numberOfLines={1} style={styles.rating}>
+            {formattedRating}
+          </Text>
         </View>
       </View>
     </Pressable>
@@ -111,11 +114,14 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'nowrap',
     gap: 6,
   },
   rating: {
     fontSize: 13,
     fontWeight: '600',
     color: '#1A1A1A',
+    minWidth: 30,
+    includeFontPadding: false,
   },
 });

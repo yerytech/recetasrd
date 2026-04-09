@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CategoryCard } from '../components/CategoryCard';
+import { LoadingStateCard } from '../components/LoadingStateCard';
 import { RecipeListItem } from '../components/RecipeListItem';
 import { SearchInput } from '../components/SearchInput';
 import { AppTabsParamList, RootStackParamList } from '../navigation/types';
@@ -139,9 +140,7 @@ export const HomeScreen = ({ navigation }: Props) => {
             )}
 
             {isLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#C9822B" />
-              </View>
+              <LoadingStateCard title="Cargando recetas" subtitle="Estamos preparando tu menu de hoy." />
             ) : null}
           </View>
 

@@ -23,6 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CommentItem } from '../components/CommentItem';
 import { CustomButton } from '../components/CustomButton';
 import { CustomInput } from '../components/CustomInput';
+import { LoadingStateCard } from '../components/LoadingStateCard';
 import { STORAGE_KEYS } from '../constants/storage';
 import { RatingStars } from '../components/RatingStars';
 import { COLORS, FONT_SIZE, SPACING } from '../constants/theme';
@@ -269,9 +270,7 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.centeredState}>
-          <ActivityIndicator color={COLORS.primary} size="large" />
-        </View>
+        <LoadingStateCard title="Cargando receta" subtitle="Estamos preparando todos los detalles." />
       </SafeAreaView>
     );
   }

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FoodCard } from '../components/FoodCard';
 import { HeaderComponent } from '../components/HeaderComponent';
+import { LoadingStateCard } from '../components/LoadingStateCard';
 import { useRecipes } from '../hooks/useRecipes';
 import { RootStackParamList } from '../navigation/types';
 import { getResponsiveColumns, getResponsiveMaxWidth } from '../utils/responsive';
@@ -44,9 +45,7 @@ export const PostresScreen = () => {
       />
 
       {isLoading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#C9822B" />
-        </View>
+        <LoadingStateCard title="Cargando recetas" subtitle="Buscando opciones de postres para ti." />
       ) : error ? (
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error}</Text>

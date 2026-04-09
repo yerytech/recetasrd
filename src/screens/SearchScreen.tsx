@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RecipeCard } from '../components/RecipeCard';
+import { LoadingStateCard } from '../components/LoadingStateCard';
 import { COLORS, FONT_SIZE, LAYOUT, SPACING } from '../constants/theme';
 import { useRecipes } from '../hooks/useRecipes';
 import { RootStackParamList } from '../navigation/types';
@@ -53,8 +54,7 @@ export const SearchScreen = () => {
           />
         </View>
 
-        {isLoading ? <ActivityIndicator color={COLORS.primary} style={styles.loader} /> : null}
-        {isLoading ? <ActivityIndicator color={COLORS.primary} style={styles.loader} /> : null}
+        {isLoading ? <LoadingStateCard title="Buscando recetas" subtitle="Estamos consultando resultados para tu busqueda." /> : null}
           <FlatList
             data={recipes}
             contentContainerStyle={styles.listContent}

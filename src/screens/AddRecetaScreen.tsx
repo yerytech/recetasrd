@@ -25,6 +25,7 @@ import {
 import { CategoryItem } from '../components/CategoryItem';
 import { CustomButton } from '../components/CustomButton';
 import { CustomInput } from '../components/CustomInput';
+import { LoadingStateCard } from '../components/LoadingStateCard';
 import { RECIPE_CATEGORIES } from '../constants/categories';
 import { COLORS, FONT_SIZE, LAYOUT, SPACING } from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
@@ -497,10 +498,10 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
   if (isLoadingRecipe) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.loadingState}>
-          <ActivityIndicator color={COLORS.primary} size="large" />
-          <Text style={styles.loadingStateText}>Cargando receta para editar...</Text>
-        </View>
+        <LoadingStateCard
+          title="Preparando editor"
+          subtitle="Estamos cargando la receta para editarla."
+        />
       </SafeAreaView>
     );
   }
@@ -766,16 +767,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: LAYOUT.contentHorizontalPadding,
     paddingVertical: SPACING.md,
     paddingBottom: SPACING.xl,
-  },
-  loadingState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-  },
-  loadingStateText: {
-    color: COLORS.textSecondary,
-    fontSize: FONT_SIZE.sm,
   },
   title: {
     fontSize: FONT_SIZE.xl,
