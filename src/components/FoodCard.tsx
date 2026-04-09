@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { COLORS } from '../constants/theme';
+
 interface FoodCardProps {
   title: string;
   rating: number;
@@ -47,7 +49,7 @@ export const FoodCard = ({
         </Text>
 
         <View style={styles.ratingContainer}>
-          <Ionicons name="star" size={16} color="#FFC107" />
+          <Ionicons name="star" size={16} color={COLORS.primary} />
           <Text style={styles.rating}>{rating.toFixed(1)}</Text>
         </View>
       </View>

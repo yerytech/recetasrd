@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { COLORS } from '../constants/theme';
+
 type RecipeListItemProps = {
   title: string;
   rating: number;
@@ -31,7 +33,7 @@ export const RecipeListItem = ({
         </Text>
 
         <View style={styles.ratingRow}>
-          <Ionicons color="#F2C94C" name="star" size={14} />
+          <Ionicons color={COLORS.primary} name="star" size={14} />
           <Text numberOfLines={1} style={styles.ratingText}>
             {Number.isFinite(rating) ? rating.toFixed(1) : '0.0'}
           </Text>

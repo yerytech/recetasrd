@@ -368,7 +368,7 @@ export const ProfileScreen = ({}: Props) => {
               }}
               style={styles.avatarActionButton}
             >
-              <Ionicons color={COLORS.primary} name="camera-outline" size={18} />
+              <Ionicons color={COLORS.white} name="camera-outline" size={18} />
               <Text style={styles.avatarActionText}>{isUploadingAvatar ? 'Subiendo...' : 'Cambiar foto'}</Text>
             </Pressable>
 
@@ -380,7 +380,7 @@ export const ProfileScreen = ({}: Props) => {
                 }}
                 style={styles.avatarActionButton}
               >
-                <Ionicons color={COLORS.danger} name="trash-outline" size={18} />
+                <Ionicons color={COLORS.white} name="trash-outline" size={18} />
                 <Text style={styles.avatarRemoveText}>Quitar foto</Text>
               </Pressable>
             ) : null}
@@ -415,7 +415,7 @@ export const ProfileScreen = ({}: Props) => {
 
           <CustomButton
             onPress={toggleNameEditor}
-            style={styles.actionToggleButton}
+            style={[styles.actionToggleButton, styles.profilePrimaryButton]}
             title={isNameEditorVisible ? 'Ocultar cambio de nombre' : 'Cambiar nombre'}
           />
 
@@ -435,15 +435,15 @@ export const ProfileScreen = ({}: Props) => {
                 onPress={() => {
                   void handleSaveProfile();
                 }}
+                style={styles.profilePrimaryButton}
                 title="Guardar nombre"
-                variant="secondary"
               />
             </View>
           ) : null}
 
           <CustomButton
             onPress={togglePasswordEditor}
-            style={styles.actionToggleButton}
+            style={[styles.actionToggleButton, styles.profilePrimaryButton]}
             title={isPasswordEditorVisible ? 'Ocultar cambio de contraseña' : 'Cambiar contraseña'}
           />
 
@@ -474,8 +474,8 @@ export const ProfileScreen = ({}: Props) => {
                 onPress={() => {
                   void handleChangePassword();
                 }}
+                style={styles.profilePrimaryButton}
                 title="Actualizar contraseña"
-                variant="secondary"
               />
             </View>
           ) : null}
@@ -484,9 +484,8 @@ export const ProfileScreen = ({}: Props) => {
         <CustomButton
           loading={isLoggingOut}
           onPress={handleLogout}
-          style={styles.logoutButton}
+          style={[styles.logoutButton, styles.profilePrimaryButton]}
           title="Cerrar sesión"
-          variant="outline"
         />
       </ScrollView>
 
@@ -576,6 +575,8 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     backgroundColor: COLORS.primary,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.md,
@@ -585,6 +586,8 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: COLORS.primary,
     marginBottom: SPACING.md,
   },
   avatarImage: {
@@ -606,17 +609,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: 12,
-    backgroundColor: COLORS.inputBackground,
+    backgroundColor: COLORS.primary,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.primary,
   },
   avatarActionText: {
-    color: COLORS.primary,
+    color: COLORS.white,
     fontSize: FONT_SIZE.sm,
     fontWeight: '600',
   },
   avatarRemoveText: {
-    color: COLORS.danger,
+    color: COLORS.white,
     fontSize: FONT_SIZE.sm,
     fontWeight: '600',
   },
@@ -673,6 +676,9 @@ const styles = StyleSheet.create({
   },
   actionToggleButton: {
     marginTop: SPACING.sm,
+  },
+  profilePrimaryButton: {
+    backgroundColor: COLORS.primary,
   },
   formSection: {
     marginTop: SPACING.sm,

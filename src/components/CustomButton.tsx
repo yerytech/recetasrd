@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
   },
   primary: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#FF7A00',
   },
   secondary: {
     backgroundColor: COLORS.secondary,
