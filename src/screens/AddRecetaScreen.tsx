@@ -11,6 +11,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -25,6 +26,7 @@ import { AppTabsParamList, RootStackParamList } from '../navigation/types';
 import { createRecipe, getRecipeById, updateRecipe, uploadRecipeImage } from '../services/supabase';
 import { Ingredient, LocationPoint } from '../types';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getResponsiveMaxWidth } from '../utils/responsive';
 
 type Props = BottomTabScreenProps<AppTabsParamList, 'AddTab'>;
 
@@ -61,6 +63,8 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
   const categories = useMemo(() => RECIPE_CATEGORIES.filter((category) => category !== 'Todas'), []);
   const recipeIdToEdit = route.params?.recipeId;
   const isEditMode = Boolean(recipeIdToEdit);
+  const { width } = useWindowDimensions();
+  const contentMaxWidth = getResponsiveMaxWidth(width, 760, 1100);
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<string>('Desayuno');
@@ -333,7 +337,7 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.container, { maxWidth: contentMaxWidth, alignSelf: 'center' }]} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{isEditMode ? 'Editar receta' : 'Agregar receta'}</Text>
 
         <CustomInput label="Nombre" onChangeText={setTitle} placeholder="Ej. Moro de guandules" value={title} />

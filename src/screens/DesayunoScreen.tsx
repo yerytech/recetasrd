@@ -1,16 +1,21 @@
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FoodCard } from '../components/FoodCard';
 import { HeaderComponent } from '../components/HeaderComponent';
 import { useRecipes } from '../hooks/useRecipes';
 import { RootStackParamList } from '../navigation/types';
+import { getResponsiveColumns, getResponsiveMaxWidth } from '../utils/responsive';
 
 export const DesayunoScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { recipes, isLoading, error } = useRecipes();
+  const { width } = useWindowDimensions();
+  const numColumns = getResponsiveColumns(width);
+  const contentMaxWidth = getResponsiveMaxWidth(width, 640, 1200);
 
   // Filtrar solo desayunos
   const desayunos = recipes.filter(recipe => recipe.category === 'Desayuno');
@@ -56,9 +61,10 @@ export const DesayunoScreen = () => {
           data={desayunos}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={styles.columnWrapper}
-          contentContainerStyle={styles.listContent}
+          key={`desayuno-grid-${numColumns}`}
+          numColumns={numColumns}
+          {...(numColumns > 1 ? { columnWrapperStyle: styles.columnWrapper } : {})}
+          contentContainerStyle={[styles.listContent, { maxWidth: contentMaxWidth, alignSelf: 'center' }]}
           scrollIndicatorInsets={{ right: 1 }}
           showsVerticalScrollIndicator={false}
         />

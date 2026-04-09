@@ -12,6 +12,7 @@ import {
   Share,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,6 +29,7 @@ import { useShoppingList } from '../hooks/useShoppingList';
 import { LocalRecipeParam, RootStackParamList } from '../navigation/types';
 import { addComment, addRating, deleteRecipe, getRecipeById } from '../services/supabase';
 import { Recipe } from '../types';
+import { getResponsiveCoverHeight, getResponsiveMaxWidth } from '../utils/responsive';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RecipeDetail'>;
 
@@ -71,6 +73,9 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
   const { addIngredients } = useShoppingList();
   const localRecipe = route.params.localRecipe;
   const isLocalRecipe = Boolean(localRecipe);
+  const { width } = useWindowDimensions();
+  const contentMaxWidth = getResponsiveMaxWidth(width, 760, 1100);
+  const coverHeight = getResponsiveCoverHeight(width);
   const selectedRecipeId = localRecipe?.id ?? route.params.recipeId;
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
@@ -283,9 +288,9 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.contentContainer}>
+      <ScrollView contentContainerStyle={[styles.contentContainer, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
         <View>
-          <Image source={{ uri: recipe.imageUrl }} style={styles.coverImage} />
+          <Image source={{ uri: recipe.imageUrl }} style={[styles.coverImage, { height: coverHeight }]} />
 
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons color={COLORS.textPrimary} name="arrow-back" size={22} />

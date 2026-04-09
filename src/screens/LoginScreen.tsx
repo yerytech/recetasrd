@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,6 +29,8 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 export const LoginScreen = ({ navigation }: Props) => {
   const { login, recoverPassword } = useAuth();
+  const { width } = useWindowDimensions();
+  const logoSize = width >= 768 ? 180 : 150;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -89,15 +92,16 @@ export const LoginScreen = ({ navigation }: Props) => {
             contentContainerStyle={styles.container}
             keyboardShouldPersistTaps="handled"
           >
-            {/* LOGO */}
-            <Image source={appLogo} style={styles.logo} resizeMode="contain" />
+            <View style={styles.formWrapper}>
+              {/* LOGO */}
+              <Image source={appLogo} style={[styles.logo, { width: logoSize, height: logoSize }]} resizeMode="contain" />
 
-            {/* TITULOS */}
-            <Text style={styles.title}>¡BIENVENIDO!</Text>
-            <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
+              {/* TITULOS */}
+              <Text style={styles.title}>¡BIENVENIDO!</Text>
+              <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
 
-            {/* INPUT EMAIL */}
-            <View style={styles.input}>
+              {/* INPUT EMAIL */}
+              <View style={styles.input}>
               <Ionicons color="#7A4E1D" name="mail-outline" size={20} style={styles.inputIcon} />
               <TextInput
                 autoCapitalize="none"
@@ -109,10 +113,10 @@ export const LoginScreen = ({ navigation }: Props) => {
                 style={styles.inputText}
                 value={email}
               />
-            </View>
+              </View>
 
-            {/* INPUT PASSWORD */}
-            <View style={styles.input}>
+              {/* INPUT PASSWORD */}
+              <View style={styles.input}>
               <Ionicons color="#7A4E1D" name="lock-closed-outline" size={20} style={styles.inputIcon} />
               <TextInput
                 onChangeText={setPassword}
@@ -122,43 +126,44 @@ export const LoginScreen = ({ navigation }: Props) => {
                 style={styles.inputText}
                 value={password}
               />
-            </View>
+              </View>
 
-            <Pressable onPress={handleOpenRecoverModal} style={styles.forgotContainer}>
-              <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
-            </Pressable>
+              <Pressable onPress={handleOpenRecoverModal} style={styles.forgotContainer}>
+                <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+              </Pressable>
 
-            {/* BOTON LOGIN */}
-            <Pressable style={styles.button} onPress={handleLogin}>
+              {/* BOTON LOGIN */}
+              <Pressable style={styles.button} onPress={handleLogin}>
               <Text style={styles.buttonText}>
                 {isSubmitting ? 'Cargando...' : 'ENTRA A LA COCINA'}
               </Text>
-            </Pressable>
+              </Pressable>
 
-            {/* DIVIDER */}
-            <View style={styles.dividerContainer}>
+              {/* DIVIDER */}
+              <View style={styles.dividerContainer}>
               <View style={styles.line} />
               <Text style={styles.dividerText}>O inicia con</Text>
               <View style={styles.line} />
-            </View>
+              </View>
 
-            {/* SOCIAL */}
-            <View style={styles.socialContainer}>
+              {/* SOCIAL */}
+              <View style={styles.socialContainer}>
               <Pressable style={styles.socialBtn} onPress={handleSocialPress}>
                 <Image resizeMode="contain" source={googleIcon} style={styles.socialIcon} />
               </Pressable>
               <Pressable style={styles.socialBtn} onPress={handleSocialPress}>
                 <Image resizeMode="contain" source={appleIcon} style={styles.socialIcon} />
               </Pressable>
-            </View>
+              </View>
 
-            {/* REGISTER */}
-            <Pressable onPress={() => navigation.navigate('Register')}>
+              {/* REGISTER */}
+              <Pressable onPress={() => navigation.navigate('Register')}>
               <Text style={styles.registerText}>
                 ¡Nuevo en Recetas RD?{' '}
                 <Text style={styles.registerLink}>Regístrate</Text>
               </Text>
-            </Pressable>
+              </Pressable>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
 
@@ -253,6 +258,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
+  },
+
+  formWrapper: {
+    width: '100%',
+    maxWidth: 460,
+    alignSelf: 'center',
   },
 
   logo: {

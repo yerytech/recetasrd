@@ -1,10 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const appLogo = require('../../assets/logo.png');
 
 export const SplashScreen = () => {
+  const { width } = useWindowDimensions();
+  const logoSize = Math.max(150, Math.min(width * 0.45, 240));
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="light" />
@@ -12,7 +15,7 @@ export const SplashScreen = () => {
         <Image 
           source={appLogo}
           resizeMode="contain"
-          style={styles.logo}
+          style={[styles.logo, { width: logoSize, height: logoSize }]}
         />
       </View>
     </SafeAreaView>
@@ -30,7 +33,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    width: 240, 
+    width: 240,
     height: 240,
   },
 });

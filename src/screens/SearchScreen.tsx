@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,6 +18,7 @@ import { COLORS, FONT_SIZE, LAYOUT, SPACING } from '../constants/theme';
 import { useRecipes } from '../hooks/useRecipes';
 import { RootStackParamList } from '../navigation/types';
 import { Recipe } from '../types';
+import { getResponsiveMaxWidth } from '../utils/responsive';
 
 /**
  * Pantalla dedicada de búsqueda de recetas.
@@ -24,6 +26,8 @@ import { Recipe } from '../types';
 export const SearchScreen = () => {
   const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { recipes, isLoading, search, setSearch, setCategory } = useRecipes();
+  const { width } = useWindowDimensions();
+  const contentMaxWidth = getResponsiveMaxWidth(width, 720, 1100);
 
   useEffect(() => {
     setCategory('Todas');
@@ -36,7 +40,7 @@ export const SearchScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
-      <View style={styles.container}>
+      <View style={[styles.container, { maxWidth: contentMaxWidth, alignSelf: 'center' }]}>
         <Text style={styles.title}>Buscar recetas</Text>
 
         <View style={styles.searchContainer}>

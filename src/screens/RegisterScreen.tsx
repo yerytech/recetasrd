@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +26,8 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
 export const RegisterScreen = ({ navigation }: Props) => {
   const { register } = useAuth();
+  const { width } = useWindowDimensions();
+  const logoSize = width >= 768 ? 180 : 150;
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -62,7 +65,8 @@ export const RegisterScreen = ({ navigation }: Props) => {
           style={{ flex: 1 }}
         >
           <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-            <Image source={appLogo} style={styles.logo} resizeMode="contain" />
+            <View style={styles.formWrapper}>
+            <Image source={appLogo} style={[styles.logo, { width: logoSize, height: logoSize }]} resizeMode="contain" />
 
             <Text style={styles.title}>¡ÚNETE A NOSOTROS!</Text>
             <Text style={styles.subtitle}>Crea una cuenta</Text>
@@ -129,6 +133,7 @@ export const RegisterScreen = ({ navigation }: Props) => {
                 <Text style={styles.registerLink}>Iniciar sesión</Text>
               </Text>
             </Pressable>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -141,6 +146,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
+  },
+
+  formWrapper: {
+    width: '100%',
+    maxWidth: 460,
+    alignSelf: 'center',
   },
 
   logo: {
