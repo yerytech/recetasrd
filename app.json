@@ -12,16 +12,7 @@
       "backgroundColor": "#ffffff"
     },
     "plugins": [
-      "expo-location",
-      [
-        "react-native-maps",
-        {
-          "maps": {
-            "android": "google",
-            "ios": "google"
-          }
-        }
-      ]
+      "expo-location"
     ],
     "ios": {
       "supportsTablet": true,

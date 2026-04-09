@@ -287,8 +287,8 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
 
   const ratingsCountLabel =
     recipe.ratingsCount === 1
-      ? '1 persona ha dejado puntuacion'
-      : `${recipe.ratingsCount} personas han dejado puntuacion`;
+      ? '1 persona'
+      : `${recipe.ratingsCount} personas`;
 
   return (
     <SafeAreaView style={styles.safeArea}>
