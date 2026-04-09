@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   Pressable,
   StyleSheet,
@@ -51,6 +52,7 @@ export const LocationPickerModal = ({
     return Promise.race([
       Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
+        mayShowUserSettingsDialog: true,
       }),
       timeoutPromise,
     ]);
@@ -59,6 +61,25 @@ export const LocationPickerModal = ({
   const getCurrentLocation = async () => {
     try {
       setLoading(true);
+
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+      if (!servicesEnabled) {
+        Alert.alert(
+          'Activa la ubicación',
+          'El GPS del dispositivo está desactivado. Activa la ubicación para obtener latitud y longitud automáticamente.',
+          [
+            { text: 'Seleccionar manualmente', style: 'cancel' },
+            {
+              text: 'Abrir ajustes',
+              onPress: () => {
+                void Linking.openSettings();
+              },
+            },
+          ],
+        );
+        setDefaultLocation();
+        return;
+      }
 
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -86,12 +107,45 @@ export const LocationPickerModal = ({
         await reverseGeocode(latitude, longitude);
       } catch (locationError: any) {
         console.error('Error getting location:', locationError?.message);
+
+        // If current position fails, try last known position before falling back.
+        let lastKnownLocation: Location.LocationObject | null = null;
+        try {
+          lastKnownLocation = await Location.getLastKnownPositionAsync({
+            maxAge: 1000 * 60 * 10,
+            requiredAccuracy: 250,
+          });
+        } catch (lastKnownError: any) {
+          console.error('Error getting last known location:', lastKnownError?.message);
+        }
+
+        if (lastKnownLocation?.coords) {
+          const { latitude, longitude } = lastKnownLocation.coords;
+
+          setRegion({
+            latitude,
+            longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          });
+
+          setSelectedCoordinates({ latitude, longitude });
+          await reverseGeocode(latitude, longitude);
+          return;
+        }
         
         // Location services error - provide helpful message
-        if (locationError?.message?.includes('unavailable')) {
+        const normalizedMessage = String(locationError?.message ?? '').toLowerCase();
+
+        if (
+          normalizedMessage.includes('unavailable') ||
+          normalizedMessage.includes('there was a problem') ||
+          normalizedMessage.includes('problem with the geolocation service') ||
+          normalizedMessage.includes('illegalstateexception')
+        ) {
           Alert.alert(
             'Ubicación no disponible',
-            'Asegúrate de:\n• Habilitar servicios de ubicación en tu dispositivo\n• En el emulador: abre Extended controls → Location\n\nPuedes seleccionar manualmente en el mapa.',
+            'No se pudo usar el servicio de ubicación del dispositivo.\n\nVerifica que el GPS esté activado y vuelve a intentar. También puedes seleccionar una ubicación manualmente en el mapa.',
           );
         } else {
           Alert.alert(
@@ -198,7 +252,7 @@ export const LocationPickerModal = ({
           <>
             {region && (
               <MapView
-                initialRegion={region}
+                region={region}
                 onPress={handleMapPress}
                 style={styles.map}
               >

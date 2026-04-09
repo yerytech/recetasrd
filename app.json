@@ -28,7 +28,8 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Se necesita tu ubicación para registrar dónde se preparó la receta",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Se necesita tu ubicación para registrar dónde se preparó la receta"
-      }
+      },
+      "bundleIdentifier": "com.anonymous.recetas-rd"
     },
     "android": {
       "adaptiveIcon": {

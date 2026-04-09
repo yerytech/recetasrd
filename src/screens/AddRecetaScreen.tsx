@@ -55,6 +55,18 @@ const mapLocationData = (locationData: LocationData): LocationPoint => ({
 const isSameLocation = (first: LocationPoint, second: LocationPoint): boolean =>
   first.address === second.address && first.latitude === second.latitude && first.longitude === second.longitude;
 
+const sanitizeIngredientLocations = (ingredients: EditableIngredient[]): EditableIngredient[] =>
+  ingredients.map((ingredient) => ({
+    ...ingredient,
+    purchaseLocations: (ingredient.purchaseLocations ?? [])
+      .map((location) => ({
+        address: (location.address ?? '').trim() || 'Ubicación seleccionada',
+        latitude: Number(location.latitude),
+        longitude: Number(location.longitude),
+      }))
+      .filter((location) => Number.isFinite(location.latitude) && Number.isFinite(location.longitude)),
+  }));
+
 export const AddRecetaScreen = ({ navigation, route }: Props) => {
   const { user } = useAuth();
   const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -249,6 +261,7 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
 
     try {
       setIsSaving(true);
+      const normalizedIngredients = sanitizeIngredientLocations(ingredients);
 
       let finalImageUrl = imageUrl.trim();
       if (imageUri) {
@@ -268,7 +281,7 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
             title,
             category,
             imageUrl: finalImageUrl,
-            ingredients,
+            ingredients: normalizedIngredients,
             preparation,
           },
           user.id,
@@ -285,7 +298,7 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
           title,
           category,
           imageUrl: finalImageUrl,
-          ingredients,
+          ingredients: normalizedIngredients,
           preparation,
         },
         user.id,
@@ -351,7 +364,7 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
               style={[styles.selectImageButton, isUploadingImage && styles.selectImageButtonDisabled]}
             >
               <Ionicons color={COLORS.primary} name="image-outline" size={32} />
-              <Text style={styles.selectImageButtonText}>
+              <Text adjustsFontSizeToFit minimumFontScale={0.82} numberOfLines={1} style={styles.selectImageButtonText}>
                 {isUploadingImage ? 'Subiendo imagen...' : 'Selecciona una imagen'}
               </Text>
             </Pressable>
