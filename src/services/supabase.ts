@@ -36,6 +36,7 @@ const DEFAULT_RECIPE_IMAGE =
 const env = (globalThis as EnvironmentLike).process?.env ?? {};
 const supabaseUrl = env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const supabaseAnonKey = env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+const passwordResetRedirectUrl = env.EXPO_PUBLIC_PASSWORD_RESET_REDIRECT_URL;
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -201,6 +202,16 @@ const applyRecipeFilters = (
   });
 };
 
+const getSupabaseAuthClient = () => {
+  if (!supabase) {
+    throw new Error(
+      'Autenticacion no disponible. Configura EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY en .env y reinicia la app.',
+    );
+  }
+
+  return supabase;
+};
+
 const rebuildLocalRecipeStats = (recipeId: string): void => {
   localRecipes = localRecipes.map((recipe) => {
     if (recipe.id !== recipeId) {
@@ -224,17 +235,9 @@ export const loginUser = async (email: string, password: string): Promise<User> 
     throw new Error('Completa correo y contraseña.');
   }
 
-  if (!supabase) {
-    const foundUser = localUsers.find((user) => user.email.toLowerCase() === email.trim().toLowerCase());
+  const authClient = getSupabaseAuthClient();
 
-    if (!foundUser) {
-      throw new Error('Usuario no encontrado en modo local. Regístrate primero.');
-    }
-
-    return foundUser;
-  }
-
-  const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+  const { data, error } = await authClient.auth.signInWithPassword({ email: email.trim(), password });
 
   if (error || !data.user) {
     throw new Error(error?.message ?? 'No se pudo iniciar sesión.');
@@ -248,25 +251,9 @@ export const registerUser = async ({ name, email, password }: RegisterPayload): 
     throw new Error('Completa todos los campos requeridos.');
   }
 
-  if (!supabase) {
-    const existingUser = localUsers.find((user) => user.email.toLowerCase() === email.trim().toLowerCase());
+  const authClient = getSupabaseAuthClient();
 
-    if (existingUser) {
-      throw new Error('Ya existe un usuario con este correo.');
-    }
-
-    const newUser: User = {
-      id: generateId('user'),
-      name: name.trim(),
-      email: email.trim(),
-      avatarUrl: null,
-    };
-
-    localUsers = [newUser, ...localUsers];
-    return newUser;
-  }
-
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await authClient.auth.signUp({
     email: email.trim(),
     password,
     options: {
@@ -281,6 +268,24 @@ export const registerUser = async ({ name, email, password }: RegisterPayload): 
   }
 
   return mapSupabaseUserToAppUser(data.user, name);
+};
+
+export const recoverAccount = async (email: string): Promise<void> => {
+  const cleanEmail = email.trim();
+
+  if (!cleanEmail) {
+    throw new Error('Ingresa tu correo para recuperar la cuenta.');
+  }
+
+  const authClient = getSupabaseAuthClient();
+
+  const { error } = await authClient.auth.resetPasswordForEmail(cleanEmail, {
+    redirectTo: passwordResetRedirectUrl,
+  });
+
+  if (error) {
+    throw new Error(error.message ?? 'No se pudo enviar el correo de recuperación.');
+  }
 };
 
 export const getRecipes = async (options?: { search?: string; category?: string }): Promise<Recipe[]> => {

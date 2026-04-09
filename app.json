@@ -47,8 +47,11 @@
     "web": {
       "favicon": "./assets/logo.png"
     },
-    // Configuración para permitir que otros puedan abrir links de la app
-    // Cuando alguien comparta una receta, puede abrirse directamente en la app
-    "scheme": "recetasrd"
+    "scheme": "recetasrd",
+    "extra": {
+      "eas": {
+        "projectId": "3c4f6648-13f1-4d39-bebe-c77d09170f18"
+      }
+    }
   }
 }

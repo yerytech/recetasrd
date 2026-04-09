@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { STORAGE_KEYS } from '../constants/storage';
-import { loginUser, registerUser, supabase } from '../services/supabase';
+import { loginUser, recoverAccount, registerUser, supabase } from '../services/supabase';
 import { User } from '../types';
 
 type AuthContextValue = {
@@ -10,6 +10,7 @@ type AuthContextValue = {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  recoverPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -45,34 +46,37 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const hydrateAuth = useCallback(async () => {
     try {
+      if (!supabase) {
+        setUser(null);
+        await persistUser(null);
+        return;
+      }
+
       const rawUser = await AsyncStorage.getItem(STORAGE_KEYS.authUser);
       const parsedStoredUser = parseStoredUser(rawUser);
 
-      if (parsedStoredUser) {
-        setUser(parsedStoredUser);
-      }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (supabase) {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+      if (session?.user) {
+        const restoredUser: User = {
+          id: session.user.id,
+          name:
+            typeof session.user.user_metadata?.name === 'string'
+              ? session.user.user_metadata.name
+              : parsedStoredUser
+                ? parsedStoredUser.name
+                : 'Usuario Recetas RD',
+          email: session.user.email ?? (parsedStoredUser ? parsedStoredUser.email : ''),
+          avatarUrl: null,
+        };
 
-        if (session?.user) {
-          const restoredUser: User = {
-            id: session.user.id,
-            name:
-              typeof session.user.user_metadata?.name === 'string'
-                ? session.user.user_metadata.name
-                : parsedStoredUser
-                  ? parsedStoredUser.name
-                  : 'Usuario Recetas RD',
-            email: session.user.email ?? (parsedStoredUser ? parsedStoredUser.email : ''),
-            avatarUrl: null,
-          };
-
-          setUser(restoredUser);
-          await persistUser(restoredUser);
-        }
+        setUser(restoredUser);
+        await persistUser(restoredUser);
+      } else {
+        setUser(null);
+        await persistUser(null);
       }
     } catch {
       setUser(null);
@@ -133,12 +137,14 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const register = useCallback(
     async (name: string, email: string, password: string) => {
-      const registeredUser = await registerUser({ name, email, password });
-      setUser(registeredUser);
-      await persistUser(registeredUser);
+      await registerUser({ name, email, password });
     },
-    [persistUser],
+    [],
   );
+
+  const recoverPassword = useCallback(async (email: string) => {
+    await recoverAccount(email);
+  }, []);
 
   const logout = useCallback(async () => {
     if (supabase) {
@@ -155,9 +161,10 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       isLoading,
       login,
       register,
+      recoverPassword,
       logout,
     }),
-    [isLoading, login, logout, register, user],
+    [isLoading, login, logout, recoverPassword, register, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

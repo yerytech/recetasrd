@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { NavigationProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import {
   Alert,
@@ -13,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { COLORS, FONT_SIZE, LAYOUT, SPACING } from '../constants/theme';
 import { useShoppingList } from '../hooks/useShoppingList';
-import { AppTabsParamList } from '../navigation/types';
+import { AppTabsParamList, RootStackParamList } from '../navigation/types';
 import { ShoppingItem } from '../types';
 
 type Props = BottomTabScreenProps<AppTabsParamList, 'ShoppingListTab'>;
@@ -32,17 +33,17 @@ export const ShoppingListScreen = ({ navigation }: Props) => {
       return;
     }
 
-    const parentNavigation = navigation.getParent();
+    const parentNavigation = navigation.getParent<NavigationProp<RootStackParamList>>();
 
     if (!parentNavigation) {
       Alert.alert('Error', 'No se pudo abrir la pantalla de ubicaciones.');
       return;
     }
 
-    parentNavigation.navigate('IngredientLocations' as never, {
+    parentNavigation.navigate('IngredientLocations', {
       ingredientName: item.name,
       locations,
-    } as never);
+    });
   };
 
   const renderItem = ({ item }: { item: ShoppingItem }) => (

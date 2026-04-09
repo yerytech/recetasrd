@@ -41,6 +41,11 @@ export const RegisterScreen = ({ navigation }: Props) => {
     try {
       setIsSubmitting(true);
       await register(name, email, password);
+      Alert.alert(
+        'Cuenta creada',
+        'Tu cuenta fue creada en Supabase. Si tu proyecto requiere confirmación por correo, verifica tu bandeja antes de iniciar sesión.',
+      );
+      navigation.navigate('Login');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo crear la cuenta.';
       Alert.alert('Error', message);

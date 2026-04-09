@@ -1,0 +1,24 @@
+{
+  "cli": {
+    "version": ">= 18.4.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "debug": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

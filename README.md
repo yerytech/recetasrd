@@ -4,7 +4,7 @@ Aplicacion movil de recetas dominicanas construida con Expo + React Native + Typ
 
 ## Funcionalidades principales
 
-- Autenticacion con Supabase (con fallback local cuando no hay configuracion).
+- Autenticacion con Supabase (sin fallback local).
 - Explorar recetas por categoria (Desayuno, Almuerzo, Cena, Postres).
 - Buscar recetas por texto.
 - Crear y editar recetas con imagen, ingredientes y preparacion.
@@ -49,7 +49,10 @@ cp .env.example .env
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+EXPO_PUBLIC_PASSWORD_RESET_REDIRECT_URL=recetasrd://reset-password
 ```
+
+`EXPO_PUBLIC_PASSWORD_RESET_REDIRECT_URL` es opcional, pero recomendado para controlar a donde redirige el correo de recuperacion.
 
 ## Base de datos (Supabase)
 

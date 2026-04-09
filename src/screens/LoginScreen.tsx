@@ -2,6 +2,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -26,17 +27,39 @@ const appleIcon = require('../../assets/apple icon.png');
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 export const LoginScreen = ({ navigation }: Props) => {
-  const { login } = useAuth();
+  const { login, recoverPassword } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showRecoverModal, setShowRecoverModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [isRecoveringAccount, setIsRecoveringAccount] = useState(false);
 
   const handleSocialPress = () => {
     setShowSocialModal(true);
+  };
+
+  const handleOpenRecoverModal = () => {
+    setRecoveryEmail(email);
+    setShowRecoverModal(true);
+  };
+
+  const handleRecoverAccount = async () => {
+    try {
+      setIsRecoveringAccount(true);
+      await recoverPassword(recoveryEmail);
+      setShowRecoverModal(false);
+      Alert.alert('Correo enviado', 'Revisa tu correo para recuperar tu cuenta de Supabase.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo enviar el correo de recuperación.';
+      Alert.alert('Error', message);
+    } finally {
+      setIsRecoveringAccount(false);
+    }
   };
 
   const handleLogin = async () => {
@@ -101,6 +124,10 @@ export const LoginScreen = ({ navigation }: Props) => {
               />
             </View>
 
+            <Pressable onPress={handleOpenRecoverModal} style={styles.forgotContainer}>
+              <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+            </Pressable>
+
             {/* BOTON LOGIN */}
             <Pressable style={styles.button} onPress={handleLogin}>
               <Text style={styles.buttonText}>
@@ -151,6 +178,46 @@ export const LoginScreen = ({ navigation }: Props) => {
               <Pressable style={styles.modalButton} onPress={() => setShowSocialModal(false)}>
                 <Text style={styles.modalButtonText}>Entendido</Text>
               </Pressable>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          animationType="fade"
+          transparent
+          visible={showRecoverModal}
+          onRequestClose={() => setShowRecoverModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowRecoverModal(false)} />
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Recuperar cuenta</Text>
+              <Text style={styles.modalMessage}>
+                Ingresa el correo de tu cuenta de Supabase y te enviaremos un enlace para recuperar el acceso.
+              </Text>
+              <View style={styles.modalInputContainer}>
+                <Ionicons color="#7A4E1D" name="mail-outline" size={20} style={styles.inputIcon} />
+                <TextInput
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  onChangeText={setRecoveryEmail}
+                  placeholder="Correo Electrónico"
+                  placeholderTextColor="#7A4E1D"
+                  style={styles.modalInputText}
+                  value={recoveryEmail}
+                />
+              </View>
+              <View style={styles.modalActions}>
+                <Pressable style={[styles.modalSecondaryButton, styles.modalActionButton]} onPress={() => setShowRecoverModal(false)}>
+                  <Text style={styles.modalSecondaryButtonText}>Cancelar</Text>
+                </Pressable>
+                <Pressable style={[styles.modalButton, styles.modalActionButton]} onPress={handleRecoverAccount}>
+                  <Text style={styles.modalButtonText}>
+                    {isRecoveringAccount ? 'Enviando...' : 'Enviar'}
+                  </Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         </Modal>
@@ -224,6 +291,16 @@ const styles = StyleSheet.create({
 
   inputIcon: {
     marginRight: 10,
+  },
+
+  forgotContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 10,
+  },
+
+  forgotText: {
+    color: '#5A3A14',
+    fontWeight: '700',
   },
 
   button: {
@@ -336,6 +413,45 @@ const styles = StyleSheet.create({
 
   modalButtonText: {
     color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+
+  modalInputContainer: {
+    backgroundColor: '#EAD7B8',
+    borderRadius: 28,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
+  modalInputText: {
+    color: '#7A4E1D',
+    flex: 1,
+  },
+
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+
+  modalActionButton: {
+    flex: 1,
+  },
+
+  modalSecondaryButton: {
+    borderRadius: 28,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#C47F2A',
+    backgroundColor: '#FFF6EA',
+  },
+
+  modalSecondaryButtonText: {
+    color: '#C47F2A',
     fontWeight: '700',
     fontSize: 15,
   },
