@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleProp, StyleSheet, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, TextInput, TextInputProps, useWindowDimensions, View, ViewStyle } from 'react-native';
+
+import { getResponsiveControlHeight, getResponsiveFontSize, getResponsiveValue } from '../utils/responsive';
 
 type SearchInputProps = TextInputProps & {
   containerStyle?: StyleProp<ViewStyle>;
@@ -9,14 +11,24 @@ type SearchInputProps = TextInputProps & {
  * Input de búsqueda para Home.
  */
 export const SearchInput = ({ containerStyle, style, ...props }: SearchInputProps) => {
+  const { width } = useWindowDimensions();
+  const controlHeight = getResponsiveControlHeight(width) + 2;
+  const textSize = getResponsiveFontSize(width, 16);
+  const iconSize = getResponsiveValue(width, {
+    compact: 18,
+    regular: 20,
+    tablet: 22,
+    desktop: 24,
+  });
+
   return (
-    <View style={[styles.container, containerStyle]}>
-      <Ionicons color="#777777" name="search" size={20} style={styles.icon} />
+    <View style={[styles.container, { minHeight: controlHeight }, containerStyle]}>
+      <Ionicons color="#777777" name="search" size={iconSize} style={styles.icon} />
 
       <TextInput
         placeholder="Buscar recetas..."
         placeholderTextColor="#777777"
-        style={[styles.input, style]}
+        style={[styles.input, { fontSize: textSize }, style]}
         {...props}
       />
     </View>

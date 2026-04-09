@@ -49,6 +49,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     marginBottom: 12,
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000000',

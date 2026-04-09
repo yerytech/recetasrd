@@ -11,7 +11,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -26,12 +25,11 @@ import { AppTabsParamList, RootStackParamList } from '../navigation/types';
 import { createRecipe, getRecipeById, updateRecipe, uploadRecipeImage } from '../services/supabase';
 import { Ingredient, LocationPoint } from '../types';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getResponsiveMaxWidth } from '../utils/responsive';
 
 type Props = BottomTabScreenProps<AppTabsParamList, 'AddTab'>;
 
 type EditableIngredient = Ingredient;
-type LocationTarget = 'recipe' | 'ingredient' | null;
+type LocationTarget = 'ingredient' | null;
 
 interface LocationData {
   address: string;
@@ -63,15 +61,12 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
   const categories = useMemo(() => RECIPE_CATEGORIES.filter((category) => category !== 'Todas'), []);
   const recipeIdToEdit = route.params?.recipeId;
   const isEditMode = Boolean(recipeIdToEdit);
-  const { width } = useWindowDimensions();
-  const contentMaxWidth = getResponsiveMaxWidth(width, 760, 1100);
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<string>('Desayuno');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [preparation, setPreparation] = useState('');
-  const [recipeLocation, setRecipeLocation] = useState<LocationPoint | null>(null);
   const [ingredients, setIngredients] = useState<EditableIngredient[]>([buildNewIngredient()]);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [activeLocationTarget, setActiveLocationTarget] = useState<LocationTarget>(null);
@@ -86,7 +81,6 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
     setImageUri(null);
     setImageUrl('');
     setPreparation('');
-    setRecipeLocation(null);
     setIngredients([buildNewIngredient()]);
   }, []);
 
@@ -155,20 +149,7 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
     setLocationModalVisible(true);
   };
 
-  const openRecipeLocationPicker = () => {
-    setActiveLocationTarget('recipe');
-    setActiveIngredientId(null);
-    setLocationModalVisible(true);
-  };
-
   const handleSelectLocation = (locationData: LocationData) => {
-    if (activeLocationTarget === 'recipe') {
-      setRecipeLocation(mapLocationData(locationData));
-      setLocationModalVisible(false);
-      setActiveLocationTarget(null);
-      return;
-    }
-
     if (activeLocationTarget === 'ingredient' && activeIngredientId) {
       updateIngredientLocation(activeIngredientId, locationData);
     }
@@ -210,7 +191,6 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
       setImageUri(null);
       setImageUrl(recipe.imageUrl);
       setPreparation(recipe.preparation);
-      setRecipeLocation(recipe.location ?? null);
       setIngredients(
         recipe.ingredients.length
           ? recipe.ingredients.map((ingredient, index) => ({
@@ -290,7 +270,6 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
             imageUrl: finalImageUrl,
             ingredients,
             preparation,
-            location: recipeLocation,
           },
           user.id,
         );
@@ -308,7 +287,6 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
           imageUrl: finalImageUrl,
           ingredients,
           preparation,
-          location: recipeLocation,
         },
         user.id,
       );
@@ -337,19 +315,27 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={[styles.container, { maxWidth: contentMaxWidth, alignSelf: 'center' }]} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{isEditMode ? 'Editar receta' : 'Agregar receta'}</Text>
 
-        <CustomInput label="Nombre" onChangeText={setTitle} placeholder="Ej. Moro de guandules" value={title} />
+        <Text adjustsFontSizeToFit minimumFontScale={0.82} numberOfLines={1} style={styles.label}>
+          Nombre de la receta
+        </Text>
+        <CustomInput
+          onChangeText={setTitle}
+          placeholder="Ej. Moro de guandules"
+          value={title}
+          wrapperStyle={styles.fullWidthField}
+        />
 
-        <Text style={styles.label}>Categoría</Text>
+        <Text adjustsFontSizeToFit minimumFontScale={0.82} numberOfLines={1} style={styles.label}>Categoría</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesWrapper}>
           {categories.map((option) => (
             <CategoryItem active={category === option} key={option} label={option} onPress={() => setCategory(option)} />
           ))}
         </ScrollView>
 
-        <Text style={styles.label}>Imagen</Text>
+        <Text adjustsFontSizeToFit minimumFontScale={0.82} numberOfLines={1} style={styles.label}>Imagen</Text>
         <View style={styles.imageSelector}>
           {imageUri || imageUrl ? (
             <View style={styles.imagePreviewContainer}>
@@ -378,40 +364,13 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
           onChangeText={setImageUrl}
           placeholder="Opcional: https://..."
           value={imageUrl}
+          wrapperStyle={styles.fullWidthField}
         />
 
-        <View style={styles.recipeLocationSection}>
-          <Text style={styles.label}>Ubicación general de la receta (opcional)</Text>
-          <Pressable
-            onPress={openRecipeLocationPicker}
-            style={[styles.locationButton, recipeLocation && styles.locationButtonActive]}
-          >
-            <Ionicons
-              name={recipeLocation ? 'location' : 'location-outline'}
-              size={20}
-              color={recipeLocation ? COLORS.primary : COLORS.textSecondary}
-            />
-            <Text style={[styles.locationButtonText, recipeLocation && styles.locationButtonTextActive]}>
-              {recipeLocation ? 'Ubicación seleccionada' : 'Seleccionar ubicación'}
-            </Text>
-          </Pressable>
-
-          {recipeLocation && (
-            <View style={styles.locationInfo}>
-              <Text style={styles.locationAddress}>{recipeLocation.address}</Text>
-              <Text style={styles.locationCoordinates}>
-                {recipeLocation.latitude.toFixed(4)}, {recipeLocation.longitude.toFixed(4)}
-              </Text>
-              <Pressable onPress={() => setRecipeLocation(null)} style={styles.removeLocationButton}>
-                <Ionicons name="close-circle" size={18} color={COLORS.danger} />
-                <Text style={styles.removeLocationText}>Quitar ubicación</Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
-
         <View style={styles.ingredientsHeader}>
-          <Text style={styles.label}>Ingredientes</Text>
+          <Text adjustsFontSizeToFit minimumFontScale={0.82} numberOfLines={1} style={styles.label}>
+            Ingredientes
+          </Text>
           <Pressable onPress={addIngredientField} style={styles.addIngredientButton}>
             <Ionicons color={COLORS.primary} name="add-circle-outline" size={20} />
             <Text style={styles.addIngredientText}>Agregar</Text>
@@ -421,7 +380,9 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
         {ingredients.map((ingredient, index) => (
           <View key={ingredient.id} style={styles.ingredientRowContainer}>
             <View style={styles.ingredientRowHeader}>
-              <Text style={styles.ingredientTitle}>Ingrediente {index + 1}</Text>
+              <Text adjustsFontSizeToFit minimumFontScale={0.82} numberOfLines={1} style={styles.ingredientTitle}>
+                Ingrediente {index + 1}
+              </Text>
               <Pressable onPress={() => removeIngredientField(ingredient.id)}>
                 <Ionicons color={COLORS.danger} name="trash-outline" size={18} />
               </Pressable>
@@ -431,11 +392,13 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
               onChangeText={(value) => updateIngredient(ingredient.id, 'name', value)}
               placeholder="Nombre del ingrediente"
               value={ingredient.name}
+              wrapperStyle={styles.fullWidthField}
             />
             <CustomInput
               onChangeText={(value) => updateIngredient(ingredient.id, 'quantity', value)}
               placeholder="Cantidad"
               value={ingredient.quantity}
+              wrapperStyle={styles.fullWidthField}
             />
 
             <View style={styles.ingredientLocationSection}>
@@ -480,14 +443,17 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
           </View>
         ))}
 
+        <Text adjustsFontSizeToFit minimumFontScale={0.82} numberOfLines={1} style={styles.label}>
+          Descripción y preparación
+        </Text>
         <CustomInput
-          label="Preparación"
           multiline
           onChangeText={setPreparation}
           placeholder="Describe la preparación paso a paso"
           style={styles.preparationInput}
           textAlignVertical="top"
           value={preparation}
+          wrapperStyle={styles.fullWidthField}
         />
 
         <CustomButton
@@ -538,10 +504,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: SPACING.xs,
   },
-  categoriesWrapper: {
-    marginBottom: SPACING.md,
+  fullWidthField: {
+    width: '100%',
+    alignSelf: 'stretch',
   },
-  recipeLocationSection: {
+  categoriesWrapper: {
     marginBottom: SPACING.md,
   },
   ingredientsHeader: {
@@ -578,6 +545,8 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: FONT_SIZE.sm,
     fontWeight: '600',
+    flexShrink: 1,
+    marginRight: SPACING.sm,
   },
   ingredientLocationSection: {
     marginTop: SPACING.xs,

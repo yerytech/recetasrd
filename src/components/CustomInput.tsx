@@ -5,11 +5,13 @@ import {
   Text,
   TextInput,
   TextInputProps,
+  useWindowDimensions,
   View,
   ViewStyle,
 } from 'react-native';
 
 import { COLORS, FONT_SIZE, RADIUS, SPACING } from '../constants/theme';
+import { getResponsiveControlHeight, getResponsiveFontSize } from '../utils/responsive';
 
 type CustomInputProps = TextInputProps & {
   label?: string;
@@ -31,16 +33,35 @@ export const CustomInput = ({
   style,
   ...inputProps
 }: CustomInputProps) => {
+  const { width } = useWindowDimensions();
+  const controlHeight = getResponsiveControlHeight(width);
+  const labelSize = getResponsiveFontSize(width, FONT_SIZE.sm);
+  const inputSize = getResponsiveFontSize(width, FONT_SIZE.md);
+
   return (
     <View style={[styles.wrapper, wrapperStyle]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? (
+        <Text
+          adjustsFontSizeToFit
+          minimumFontScale={0.82}
+          numberOfLines={1}
+          style={[styles.label, { fontSize: labelSize }]}
+        >
+          {label}
+        </Text>
+      ) : null}
 
-      <View style={[styles.inputContainer, inputContainerStyle]}>
+      <View style={[styles.inputContainer, { minHeight: controlHeight }, inputContainerStyle]}>
         {leftIcon ? <View style={styles.iconContainer}>{leftIcon}</View> : null}
 
         <TextInput
           placeholderTextColor={COLORS.textSecondary}
-          style={[styles.input, leftIcon ? styles.inputWithIcon : null, style]}
+          style={[
+            styles.input,
+            { minHeight: controlHeight, fontSize: inputSize },
+            leftIcon ? styles.inputWithIcon : null,
+            style,
+          ]}
           autoCapitalize="none"
           {...inputProps}
         />

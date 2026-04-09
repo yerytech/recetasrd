@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+
+import { getResponsiveValue } from '../utils/responsive';
 
 export type HomeTabKey = 'home' | 'search' | 'favorites' | 'profile';
 
@@ -26,6 +28,26 @@ const TABS: TabConfig[] = [
  * Barra inferior personalizada para Home.
  */
 export const BottomTabBar = ({ activeTab, onTabPress, bottomInset = 0 }: BottomTabBarProps) => {
+  const { width } = useWindowDimensions();
+  const iconSize = getResponsiveValue(width, {
+    compact: 22,
+    regular: 25,
+    tablet: 27,
+    desktop: 28,
+  });
+  const tabButtonWidth = getResponsiveValue(width, {
+    compact: 52,
+    regular: 64,
+    tablet: 74,
+    desktop: 80,
+  });
+  const centerSpace = getResponsiveValue(width, {
+    compact: 54,
+    regular: 72,
+    tablet: 84,
+    desktop: 96,
+  });
+
   return (
     <View style={[styles.container, { paddingBottom: Math.max(bottomInset, 10) }]}>
       <View style={styles.content}>
@@ -36,14 +58,19 @@ export const BottomTabBar = ({ activeTab, onTabPress, bottomInset = 0 }: BottomT
             <Pressable
               key={tab.key}
               onPress={() => onTabPress(tab.key)}
-              style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.tabButton, { width: tabButtonWidth }, pressed && styles.pressed]}
             >
-              <Ionicons color="#FFFFFF" name={isActive ? tab.activeIcon : tab.icon} size={25} style={!isActive && styles.inactiveIcon} />
+              <Ionicons
+                color="#FFFFFF"
+                name={isActive ? tab.activeIcon : tab.icon}
+                size={iconSize}
+                style={!isActive && styles.inactiveIcon}
+              />
             </Pressable>
           );
         })}
 
-        <View style={styles.centerSpace} />
+        <View style={[styles.centerSpace, { width: centerSpace }]} />
 
         {TABS.slice(2).map((tab) => {
           const isActive = activeTab === tab.key;
@@ -52,9 +79,14 @@ export const BottomTabBar = ({ activeTab, onTabPress, bottomInset = 0 }: BottomT
             <Pressable
               key={tab.key}
               onPress={() => onTabPress(tab.key)}
-              style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.tabButton, { width: tabButtonWidth }, pressed && styles.pressed]}
             >
-              <Ionicons color="#FFFFFF" name={isActive ? tab.activeIcon : tab.icon} size={25} style={!isActive && styles.inactiveIcon} />
+              <Ionicons
+                color="#FFFFFF"
+                name={isActive ? tab.activeIcon : tab.icon}
+                size={iconSize}
+                style={!isActive && styles.inactiveIcon}
+              />
             </Pressable>
           );
         })}

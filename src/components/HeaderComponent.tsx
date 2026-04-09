@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { getResponsiveFontSize, getResponsiveMaxWidth, getResponsiveValue } from '../utils/responsive';
 
 interface HeaderComponentProps {
   title: string;
@@ -16,24 +18,34 @@ export const HeaderComponent = ({
 }: HeaderComponentProps) => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const titleSize = getResponsiveFontSize(width, 28);
+  const subtitleSize = getResponsiveFontSize(width, 14);
+  const iconSize = getResponsiveValue(width, {
+    compact: 24,
+    regular: 28,
+    tablet: 30,
+    desktop: 32,
+  });
+  const contentMaxWidth = getResponsiveMaxWidth(width, 760, 1140);
 
   const handleBackPress = () => {
     navigation.goBack();
   };
 
   return (
-    <View style={[styles.headerContainer, { paddingTop: insets.top + 12 }] }>
-      <View style={styles.headerContent}>
+    <View style={[styles.headerContainer, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.headerContent, { maxWidth: contentMaxWidth, alignSelf: 'center' }]}>
         <View style={styles.headerTop}>
           {showBackButton && (
             <Pressable onPress={handleBackPress} style={styles.backButton}>
-              <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
+              <Ionicons name="chevron-back" size={iconSize} color="#FFFFFF" />
             </Pressable>
           )}
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, { fontSize: titleSize }]}>{title}</Text>
           <View style={styles.spacer} />
         </View>
-        <Text style={styles.subtitle}>{subtitle}</Text>
+        <Text style={[styles.subtitle, { fontSize: subtitleSize, lineHeight: subtitleSize * 1.45 }]}>{subtitle}</Text>
       </View>
       <View style={styles.roundedBottom} />
     </View>

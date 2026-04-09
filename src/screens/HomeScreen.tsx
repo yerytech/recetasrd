@@ -1,8 +1,16 @@
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  Pressable,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CategoryCard } from '../components/CategoryCard';
@@ -10,6 +18,7 @@ import { RecipeListItem } from '../components/RecipeListItem';
 import { SearchInput } from '../components/SearchInput';
 import { AppTabsParamList, RootStackParamList } from '../navigation/types';
 import { useRecipes } from '../hooks/useRecipes';
+import { getResponsiveFontSize, getResponsiveMaxWidth } from '../utils/responsive';
 
 type Props = BottomTabScreenProps<AppTabsParamList, 'HomeTab'>;
 
@@ -19,7 +28,13 @@ type Props = BottomTabScreenProps<AppTabsParamList, 'HomeTab'>;
 export const HomeScreen = ({ navigation }: Props) => {
   const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [search, setSearch] = useState('');
+  const [popularPage, setPopularPage] = useState(1);
   const { recipes, isLoading, error, setSearch: setRecipeSearch } = useRecipes();
+  const { width } = useWindowDimensions();
+  const contentMaxWidth = getResponsiveMaxWidth(width, 760, 1200);
+  const titleSize = getResponsiveFontSize(width, 31);
+  const sectionTitleSize = getResponsiveFontSize(width, 22);
+  const popularPageSize = 6;
 
   // Actualizar búsqueda en el hook
   const handleSearch = (text: string) => {
@@ -56,9 +71,29 @@ export const HomeScreen = ({ navigation }: Props) => {
   ];
 
   // Recetas populares ordenadas por rating
-  const popularRecipes = [...recipes]
-    .sort((a, b) => b.averageRating - a.averageRating)
-    .slice(0, 5);
+  const popularRecipes = useMemo(
+    () => [...recipes].sort((a, b) => b.averageRating - a.averageRating),
+    [recipes],
+  );
+
+  const paginatedPopularRecipes = useMemo(
+    () => popularRecipes.slice(0, popularPage * popularPageSize),
+    [popularPage, popularRecipes],
+  );
+
+  const hasMorePopularRecipes = paginatedPopularRecipes.length < popularRecipes.length;
+
+  useEffect(() => {
+    setPopularPage(1);
+  }, [popularRecipes.length]);
+
+  const handleLoadMorePopularRecipes = () => {
+    if (!hasMorePopularRecipes) {
+      return;
+    }
+
+    setPopularPage((previous) => previous + 1);
+  };
 
   const handleCategoryPress = (categoryName: string) => {
     const categoryMap: Record<string, 'Desayuno' | 'Almuerzo' | 'Cena' | 'Postres'> = {
@@ -78,69 +113,107 @@ export const HomeScreen = ({ navigation }: Props) => {
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <StatusBar style="dark" />
       <View style={styles.screen}>
-        <ScrollView
-          contentContainerStyle={[styles.contentContainer, styles.contentBottomSpacing]}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Recetas RD</Text>
+        <View style={styles.pageContent}>
+          <View style={[styles.centeredContent, { maxWidth: contentMaxWidth }]}> 
+            <View style={styles.header}>
+              <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
+                numberOfLines={1}
+                style={[styles.headerTitle, { fontSize: titleSize }]}
+              >
+                Recetas RD
+              </Text>
+            </View>
+
+            <SearchInput
+              onChangeText={handleSearch}
+              placeholder="Buscar recetas..."
+              value={search}
+            />
+
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#C9822B" />
+              </View>
+            ) : null}
           </View>
 
-          <SearchInput
-            containerStyle={styles.searchInput}
-            onChangeText={handleSearch}
-            placeholder="Buscar recetas..."
-            value={search}
-          />
-
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
-
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#C9822B" />
-            </View>
-          ) : (
+          {!isLoading ? (
             <>
-              <Text style={styles.sectionTitle}>Categorías</Text>
-              <ScrollView
-                contentContainerStyle={styles.categoriesContainer}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-              >
-                {CATEGORIES.map((category) => (
-                  <CategoryCard 
-                    key={category.id} 
-                    imageUrl={category.imageUrl} 
-                    title={category.name}
-                    onPress={() => handleCategoryPress(category.name)}
-                  />
-                ))}
-              </ScrollView>
+              <View style={styles.categoriesSection}>
+                <View style={[styles.centeredContent, { maxWidth: contentMaxWidth }]}> 
+                  <Text style={[styles.sectionTitle, { fontSize: sectionTitleSize }]}>Categorías</Text>
+                </View>
 
-              <Text style={styles.sectionTitle}>Recetas populares</Text>
-              <View style={styles.recipesContainer}>
-                {popularRecipes.length > 0 ? (
-                  popularRecipes.map((recipe) => (
-                    <RecipeListItem
-                      imageUrl={recipe.imageUrl}
-                      isFavorite={false}
-                      key={recipe.id}
-                      onPress={() => rootNavigation.navigate('RecipeDetail', { recipeId: recipe.id })}
-                      rating={recipe.averageRating}
-                      title={recipe.title}
+                <FlatList
+                  contentContainerStyle={styles.categoriesContainer}
+                  data={CATEGORIES}
+                  horizontal
+                  decelerationRate="fast"
+                  snapToAlignment="start"
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(category) => category.id}
+                  renderItem={({ item: category }) => (
+                    <CategoryCard
+                      imageUrl={category.imageUrl}
+                      title={category.name}
+                      onPress={() => handleCategoryPress(category.name)}
                     />
-                  ))
-                ) : (
-                  <Text style={styles.emptyText}>No hay recetas disponibles</Text>
-                )}
+                  )}
+                />
+              </View>
+
+              <View style={styles.popularSection}> 
+                <View style={styles.popularHeadingWrapper}>
+                  <Text style={[styles.sectionTitle, styles.popularHeading, { fontSize: sectionTitleSize }]}>Recetas populares</Text>
+                </View>
+
+                <View style={styles.popularListShell}>
+                  {popularRecipes.length > 0 ? (
+                    <>
+                      <FlatList
+                        contentContainerStyle={styles.recipesContainer}
+                        data={paginatedPopularRecipes}
+                        keyExtractor={(recipe) => recipe.id}
+                        nestedScrollEnabled
+                        onEndReached={handleLoadMorePopularRecipes}
+                        onEndReachedThreshold={0.25}
+                        renderItem={({ item }) => (
+                          <RecipeListItem
+                            imageUrl={item.imageUrl}
+                            isFavorite={false}
+                            onPress={() => rootNavigation.navigate('RecipeDetail', { recipeId: item.id })}
+                            rating={item.averageRating}
+                            title={item.title}
+                          />
+                        )}
+                        showsVerticalScrollIndicator={false}
+                        style={styles.popularList}
+                      />
+
+                      {hasMorePopularRecipes ? (
+                        <View style={styles.paginationBar}>
+                          <Pressable onPress={handleLoadMorePopularRecipes} style={styles.paginationButton}>
+                            <Text style={styles.paginationButtonText}>Cargar mas</Text>
+                          </Pressable>
+                        </View>
+                      ) : null}
+                    </>
+                  ) : (
+                    <Text style={styles.emptyText}>No hay recetas disponibles</Text>
+                  )}
+                </View>
               </View>
             </>
-          )}
-        </ScrollView>
+          ) : null}
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -155,22 +228,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F2',
   },
-  contentContainer: {
-    paddingHorizontal: 20,
+  pageContent: {
+    flex: 1,
     paddingTop: 12,
-  },
-  contentBottomSpacing: {
     paddingBottom: 28,
+  },
+  centeredContent: {
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: 20,
   },
   header: {
     alignItems: 'center',
     marginBottom: 20,
+    paddingHorizontal: 8,
   },
   headerTitle: {
     fontSize: 31,
     color: '#C9822B',
     fontWeight: '700',
     letterSpacing: 0.3,
+    width: '100%',
+    textAlign: 'center',
   },
   searchInput: {
     marginBottom: 24,
@@ -182,11 +261,64 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   categoriesContainer: {
-    paddingRight: 8,
-    marginBottom: 24,
+    paddingLeft: 20,
+    paddingRight: 28,
+    paddingBottom: 10,
+  },
+  categoriesSection: {
+    marginBottom: 8,
+  },
+  popularSection: {
+    marginTop: 8,
+    width: '100%',
+  },
+  popularHeadingWrapper: {
+    paddingHorizontal: 20,
+  },
+  popularHeading: {
+    marginBottom: 12,
   },
   recipesContainer: {
     paddingBottom: 8,
+    paddingHorizontal: 0,
+    paddingTop: 12,
+  },
+  popularListShell: {
+    backgroundColor: 'transparent',
+    marginHorizontal: 0,
+    borderRadius: 0,
+    maxHeight: 420,
+    minHeight: 240,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0,
+    shadowRadius: 8,
+    elevation: 0,
+    overflow: 'hidden',
+  },
+  popularList: {
+    paddingHorizontal: 12,
+  },
+  paginationBar: {
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    backgroundColor: '#FAFAFA',
+  },
+  paginationButton: {
+    backgroundColor: '#C9822B',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  paginationButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   loadingContainer: {
     flex: 1,

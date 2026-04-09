@@ -91,7 +91,9 @@ export const ShoppingListScreen = ({ navigation }: Props) => {
             ]}
           >
             <Ionicons color={COLORS.white} name="navigate" size={16} />
-            <Text style={styles.mapButtonLabel}>Ver ubicaciones</Text>
+            <Text adjustsFontSizeToFit minimumFontScale={0.82} numberOfLines={1} style={styles.mapButtonLabel}>
+              Ver ubicaciones
+            </Text>
           </Pressable>
         </View>
       </View>

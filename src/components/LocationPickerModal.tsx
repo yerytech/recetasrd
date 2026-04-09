@@ -107,6 +107,8 @@ export const LocationPickerModal = ({
       console.error('Unexpected error:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado.');
       setDefaultLocation();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -228,14 +230,18 @@ export const LocationPickerModal = ({
                 style={[styles.button, styles.buttonSecondary]}
               >
                 <Ionicons color={COLORS.primary} name="locate" size={20} />
-                <Text style={styles.buttonSecondaryText}>Mi ubicación actual</Text>
+                <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.buttonSecondaryText}>
+                  Mi ubicación actual
+                </Text>
               </Pressable>
 
               <Pressable
                 onPress={handleConfirmLocation}
                 style={[styles.button, styles.buttonPrimary]}
               >
-                <Text style={styles.buttonText}>Confirmar ubicación</Text>
+                <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.buttonText}>
+                  Confirmar ubicación
+                </Text>
               </Pressable>
             </View>
           </>

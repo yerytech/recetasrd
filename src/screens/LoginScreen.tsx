@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAuth } from '../hooks/useAuth';
 import { AuthStackParamList } from '../navigation/types';
+import { getResponsiveFontSize } from '../utils/responsive';
 
 const appLogo = require('../../assets/logo.png');
 const googleIcon = require('../../assets/google icon.png');
@@ -42,7 +43,11 @@ const isConnectivityError = (message: string): boolean => {
 export const LoginScreen = ({ navigation }: Props) => {
   const { login, recoverPassword } = useAuth();
   const { width } = useWindowDimensions();
+  const isCompactScreen = width <= 360;
   const logoSize = width >= 768 ? 180 : 150;
+  const buttonTextSize = width <= 360 ? 12 : width < 768 ? 14 : 16;
+  const modalTitleSize = isCompactScreen ? 20 : 22;
+  const modalMessageSize = isCompactScreen ? 14 : 15;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,6 +61,7 @@ export const LoginScreen = ({ navigation }: Props) => {
   const [errorIcon, setErrorIcon] = useState<'alert-circle' | 'wifi-outline'>('alert-circle');
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [isRecoveringAccount, setIsRecoveringAccount] = useState(false);
+  const [failedLoginAttempts, setFailedLoginAttempts] = useState(0);
 
   const handleSocialPress = () => {
     setShowSocialModal(true);
@@ -84,8 +90,11 @@ export const LoginScreen = ({ navigation }: Props) => {
     try {
       setIsSubmitting(true);
       await login(email, password);
+      setFailedLoginAttempts(0);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo iniciar sesión.';
+
+      setFailedLoginAttempts((previous) => previous + 1);
 
       if (isConnectivityError(message)) {
         setErrorTitle('Sin conexión a Internet');
@@ -155,15 +164,29 @@ export const LoginScreen = ({ navigation }: Props) => {
               />
               </View>
 
-              <Pressable onPress={handleOpenRecoverModal} style={styles.forgotContainer}>
-                <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
-              </Pressable>
+              {failedLoginAttempts >= 3 ? (
+                <Pressable onPress={handleOpenRecoverModal} style={styles.forgotContainer}>
+                  <Text
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
+                    numberOfLines={1}
+                    style={styles.forgotText}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Text>
+                </Pressable>
+              ) : null}
 
               {/* BOTON LOGIN */}
               <Pressable style={styles.button} onPress={handleLogin}>
-              <Text style={styles.buttonText}>
-                {isSubmitting ? 'Cargando...' : 'ENTRA A LA COCINA'}
-              </Text>
+                <Text
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.82}
+                  numberOfLines={1}
+                  style={[styles.buttonText, { fontSize: buttonTextSize }]}
+                >
+                  {isSubmitting ? 'Cargando...' : 'ENTRA A LA COCINA'}
+                </Text>
               </Pressable>
 
               {/* DIVIDER */}
@@ -208,7 +231,9 @@ export const LoginScreen = ({ navigation }: Props) => {
                 El inicio de sesión con redes sociales estará disponible pronto. Por favor inicia con correo y contraseña.
               </Text>
               <Pressable style={styles.modalButton} onPress={() => setShowSocialModal(false)}>
-                <Text style={styles.modalButtonText}>Entendido</Text>
+                <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.modalButtonText}>
+                  Entendido
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -223,8 +248,8 @@ export const LoginScreen = ({ navigation }: Props) => {
           <View style={styles.modalOverlay}>
             <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowRecoverModal(false)} />
             <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Recuperar cuenta</Text>
-              <Text style={styles.modalMessage}>
+              <Text style={[styles.modalTitle, { fontSize: modalTitleSize }]}>Recuperar cuenta</Text>
+              <Text style={[styles.modalMessage, { fontSize: modalMessageSize }]}> 
                 Ingresa el correo de tu cuenta de Supabase y te enviaremos un enlace para recuperar el acceso.
               </Text>
               <View style={styles.modalInputContainer}>
@@ -240,12 +265,24 @@ export const LoginScreen = ({ navigation }: Props) => {
                   value={recoveryEmail}
                 />
               </View>
-              <View style={styles.modalActions}>
+              <View style={[styles.modalActions, isCompactScreen ? styles.modalActionsStacked : styles.modalActionsRow]}>
                 <Pressable style={[styles.modalSecondaryButton, styles.modalActionButton]} onPress={() => setShowRecoverModal(false)}>
-                  <Text style={styles.modalSecondaryButtonText}>Cancelar</Text>
+                  <Text
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
+                    numberOfLines={1}
+                    style={[styles.modalSecondaryButtonText, isCompactScreen && styles.modalButtonTextCompact]}
+                  >
+                    Cancelar
+                  </Text>
                 </Pressable>
                 <Pressable style={[styles.modalButton, styles.modalActionButton]} onPress={handleRecoverAccount}>
-                  <Text style={styles.modalButtonText}>
+                  <Text
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
+                    numberOfLines={1}
+                    style={[styles.modalButtonText, isCompactScreen && styles.modalButtonTextCompact]}
+                  >
                     {isRecoveringAccount ? 'Enviando...' : 'Enviar'}
                   </Text>
                 </Pressable>
@@ -266,11 +303,19 @@ export const LoginScreen = ({ navigation }: Props) => {
               <View style={styles.errorIconContainer}>
                 <Ionicons name={errorIcon} size={48} color="#C47F2A" />
               </View>
-              <Text style={styles.errorModalTitle}>{errorTitle}</Text>
-              <Text style={styles.errorModalMessage}>{errorMessage}</Text>
-              <Text style={styles.errorModalHint}>{errorHint}</Text>
+              <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.errorModalTitle}>
+                {errorTitle}
+              </Text>
+              <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.errorModalMessage}>
+                {errorMessage}
+              </Text>
+              <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.errorModalHint}>
+                {errorHint}
+              </Text>
               <Pressable style={styles.errorModalButton} onPress={() => setShowErrorModal(false)}>
-                <Text style={styles.errorModalButtonText}>Intentar de Nuevo</Text>
+                <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.errorModalButtonText}>
+                  Intentar de Nuevo
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -332,16 +377,22 @@ const styles = StyleSheet.create({
   },
 
   forgotContainer: {
-    alignItems: 'flex-end',
+    width: '100%',
+    alignItems: 'center',
     marginBottom: 10,
+    paddingVertical: 4,
   },
 
   forgotText: {
     color: '#5A3A14',
     fontWeight: '700',
+    fontSize: 14,
+    textAlign: 'center',
+    flexShrink: 1,
   },
 
   button: {
+    width: '100%',
     backgroundColor: '#C47F2A',
     padding: 18,
     borderRadius: 30,
@@ -356,6 +407,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+    textAlign: 'center',
+    flexShrink: 1,
   },
 
   dividerContainer: {
@@ -417,7 +470,7 @@ const styles = StyleSheet.create({
 
   modalCard: {
     width: '100%',
-    maxWidth: 360,
+    maxWidth: 400,
     borderRadius: 22,
     backgroundColor: '#FFF6EA',
     padding: 24,
@@ -440,6 +493,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 18,
+    width: '100%',
   },
 
   modalButton: {
@@ -475,8 +529,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
+  modalActionsRow: {
+    flexDirection: 'row',
+  },
+
+  modalActionsStacked: {
+    flexDirection: 'column',
+  },
+
   modalActionButton: {
     flex: 1,
+    width: '100%',
   },
 
   modalSecondaryButton: {
@@ -492,6 +555,10 @@ const styles = StyleSheet.create({
     color: '#C47F2A',
     fontWeight: '700',
     fontSize: 15,
+  },
+
+  modalButtonTextCompact: {
+    fontSize: 14,
   },
 
   errorModalCard: {
@@ -516,6 +583,7 @@ const styles = StyleSheet.create({
     color: '#C47F2A',
     textAlign: 'center',
     marginBottom: 12,
+    width: '100%',
   },
 
   errorModalMessage: {
@@ -525,6 +593,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: '600',
     marginBottom: 8,
+    width: '100%',
   },
 
   errorModalHint: {
@@ -533,6 +602,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
+    width: '100%',
   },
 
   errorModalButton: {
@@ -548,5 +618,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 15,
+    textAlign: 'center',
   },
 });

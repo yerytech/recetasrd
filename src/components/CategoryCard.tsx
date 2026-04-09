@@ -1,4 +1,6 @@
-import { Image, Pressable, StyleProp, StyleSheet, Text, ViewStyle } from 'react-native';
+import { Image, Pressable, StyleProp, StyleSheet, Text, useWindowDimensions, ViewStyle } from 'react-native';
+
+import { getResponsiveFontSize, getResponsiveValue } from '../utils/responsive';
 
 type CategoryCardProps = {
   title: string;
@@ -11,10 +13,30 @@ type CategoryCardProps = {
  * Tarjeta de categoría para el carrusel horizontal en Home.
  */
 export const CategoryCard = ({ title, imageUrl, onPress, style }: CategoryCardProps) => {
+  const { width } = useWindowDimensions();
+  const cardWidth = getResponsiveValue(width, {
+    compact: 96,
+    regular: 116,
+    tablet: 132,
+    desktop: 144,
+  });
+  const cardHeight = getResponsiveValue(width, {
+    compact: 136,
+    regular: 150,
+    tablet: 166,
+    desktop: 176,
+  });
+  const imageWidth = Math.round(cardWidth * 0.74);
+  const imageHeight = Math.round(cardHeight * 0.66);
+  const titleSize = getResponsiveFontSize(width, 14);
+
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.container, style, pressed && styles.pressed]}>
-      <Image source={{ uri: imageUrl }} style={styles.image} />
-      <Text numberOfLines={1} style={styles.title}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.container, { width: cardWidth, height: cardHeight }, style, pressed && styles.pressed]}
+    >
+      <Image source={{ uri: imageUrl }} style={[styles.image, { width: imageWidth, height: imageHeight }]} />
+      <Text numberOfLines={1} style={[styles.title, { fontSize: titleSize }]}>
         {title}
       </Text>
     </Pressable>

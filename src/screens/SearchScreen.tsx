@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,7 +17,6 @@ import { COLORS, FONT_SIZE, LAYOUT, SPACING } from '../constants/theme';
 import { useRecipes } from '../hooks/useRecipes';
 import { RootStackParamList } from '../navigation/types';
 import { Recipe } from '../types';
-import { getResponsiveMaxWidth } from '../utils/responsive';
 
 /**
  * Pantalla dedicada de búsqueda de recetas.
@@ -26,8 +24,6 @@ import { getResponsiveMaxWidth } from '../utils/responsive';
 export const SearchScreen = () => {
   const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { recipes, isLoading, search, setSearch, setCategory } = useRecipes();
-  const { width } = useWindowDimensions();
-  const contentMaxWidth = getResponsiveMaxWidth(width, 720, 1100);
 
   useEffect(() => {
     setCategory('Todas');
@@ -40,7 +36,7 @@ export const SearchScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
-      <View style={[styles.container, { maxWidth: contentMaxWidth, alignSelf: 'center' }]}>
+      <View style={styles.container}>
         <Text style={styles.title}>Buscar recetas</Text>
 
         <View style={styles.searchContainer}>
@@ -55,12 +51,14 @@ export const SearchScreen = () => {
         </View>
 
         {isLoading ? <ActivityIndicator color={COLORS.primary} style={styles.loader} /> : null}
-
+        {isLoading ? <ActivityIndicator color={COLORS.primary} style={styles.loader} /> : null}
         <FlatList
           data={recipes}
+          contentContainerStyle={styles.listContent}
           keyExtractor={(item) => item.id}
           renderItem={renderRecipe}
           showsVerticalScrollIndicator={false}
+          style={styles.list}
           ListEmptyComponent={
             !isLoading ? (
               <View style={styles.emptyContainer}>
@@ -82,6 +80,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: LAYOUT.contentHorizontalPadding,
+  },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: SPACING.xl,
   },
   title: {
     fontSize: FONT_SIZE.xl,

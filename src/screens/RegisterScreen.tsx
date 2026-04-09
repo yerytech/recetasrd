@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAuth } from '../hooks/useAuth';
 import { AuthStackParamList } from '../navigation/types';
+import { getResponsiveFontSize } from '../utils/responsive';
 
 const appLogo = require('../../assets/logo.png');
 
@@ -28,6 +29,7 @@ export const RegisterScreen = ({ navigation }: Props) => {
   const { register } = useAuth();
   const { width } = useWindowDimensions();
   const logoSize = width >= 768 ? 180 : 150;
+  const buttonTextSize = width <= 360 ? 12 : width < 768 ? 14 : 16;
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -66,73 +68,78 @@ export const RegisterScreen = ({ navigation }: Props) => {
         >
           <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
             <View style={styles.formWrapper}>
-            <Image source={appLogo} style={[styles.logo, { width: logoSize, height: logoSize }]} resizeMode="contain" />
+              <Image source={appLogo} style={[styles.logo, { width: logoSize, height: logoSize }]} resizeMode="contain" />
 
-            <Text style={styles.title}>¡ÚNETE A NOSOTROS!</Text>
-            <Text style={styles.subtitle}>Crea una cuenta</Text>
+              <Text style={styles.title}>¡ÚNETE A NOSOTROS!</Text>
+              <Text style={styles.subtitle}>Crea una cuenta</Text>
 
-            <View style={styles.input}>
-              <Ionicons color="#7A4E1D" name="person-outline" size={20} style={styles.inputIcon} />
-              <TextInput
-                autoCapitalize="words"
-                onChangeText={setName}
-                placeholder="Nombre"
-                placeholderTextColor="#7A4E1D"
-                style={styles.inputText}
-                value={name}
-              />
-            </View>
+              <View style={styles.input}>
+                <Ionicons color="#7A4E1D" name="person-outline" size={20} style={styles.inputIcon} />
+                <TextInput
+                  autoCapitalize="words"
+                  onChangeText={setName}
+                  placeholder="Nombre"
+                  placeholderTextColor="#7A4E1D"
+                  style={styles.inputText}
+                  value={name}
+                />
+              </View>
 
-            <View style={styles.input}>
-              <Ionicons color="#7A4E1D" name="mail-outline" size={20} style={styles.inputIcon} />
-              <TextInput
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                onChangeText={setEmail}
-                placeholder="Correo Electrónico"
-                placeholderTextColor="#7A4E1D"
-                style={styles.inputText}
-                value={email}
-              />
-            </View>
+              <View style={styles.input}>
+                <Ionicons color="#7A4E1D" name="mail-outline" size={20} style={styles.inputIcon} />
+                <TextInput
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  onChangeText={setEmail}
+                  placeholder="Correo Electrónico"
+                  placeholderTextColor="#7A4E1D"
+                  style={styles.inputText}
+                  value={email}
+                />
+              </View>
 
-            <View style={styles.input}>
-              <Ionicons color="#7A4E1D" name="lock-closed-outline" size={20} style={styles.inputIcon} />
-              <TextInput
-                onChangeText={setPassword}
-                placeholder="Contraseña"
-                placeholderTextColor="#7A4E1D"
-                secureTextEntry
-                style={styles.inputText}
-                value={password}
-              />
-            </View>
+              <View style={styles.input}>
+                <Ionicons color="#7A4E1D" name="lock-closed-outline" size={20} style={styles.inputIcon} />
+                <TextInput
+                  onChangeText={setPassword}
+                  placeholder="Contraseña"
+                  placeholderTextColor="#7A4E1D"
+                  secureTextEntry
+                  style={styles.inputText}
+                  value={password}
+                />
+              </View>
 
-            <View style={styles.input}>
-              <Ionicons color="#7A4E1D" name="lock-closed-outline" size={20} style={styles.inputIcon} />
-              <TextInput
-                onChangeText={setConfirmPassword}
-                placeholder="Confirmar contraseña"
-                placeholderTextColor="#7A4E1D"
-                secureTextEntry
-                style={styles.inputText}
-                value={confirmPassword}
-              />
-            </View>
+              <View style={styles.input}>
+                <Ionicons color="#7A4E1D" name="lock-closed-outline" size={20} style={styles.inputIcon} />
+                <TextInput
+                  onChangeText={setConfirmPassword}
+                  placeholder="Confirmar contraseña"
+                  placeholderTextColor="#7A4E1D"
+                  secureTextEntry
+                  style={styles.inputText}
+                  value={confirmPassword}
+                />
+              </View>
 
-            <Pressable style={styles.button} onPress={handleRegister}>
-              <Text style={styles.buttonText}>
-                {isSubmitting ? 'Cargando...' : 'EMPEZAR A COCINAR'}
-              </Text>
-            </Pressable>
+              <Pressable style={styles.button} onPress={handleRegister}>
+                <Text
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.82}
+                  numberOfLines={1}
+                  style={[styles.buttonText, { fontSize: buttonTextSize }]}
+                >
+                  {isSubmitting ? 'Cargando...' : 'EMPEZAR A COCINAR'}
+                </Text>
+              </Pressable>
 
-            <Pressable onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.registerText}>
-                ¿Ya tienes una cuenta?{' '}
-                <Text style={styles.registerLink}>Iniciar sesión</Text>
-              </Text>
-            </Pressable>
+              <Pressable onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.registerText}>
+                  ¿Ya tienes una cuenta?{' '}
+                  <Text style={styles.registerLink}>Iniciar sesión</Text>
+                </Text>
+              </Pressable>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -193,6 +200,7 @@ const styles = StyleSheet.create({
   },
 
   button: {
+    width: '100%',
     backgroundColor: '#C47F2A',
     padding: 18,
     borderRadius: 30,
@@ -207,6 +215,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+    textAlign: 'center',
+    flexShrink: 1,
   },
 
   registerText: {
