@@ -234,6 +234,10 @@ const normalizeCategory = (value: string | undefined): string => {
   return categoryAliases[normalized] ?? normalized;
 };
 
+const escapePostgrestLikeValue = (value: string): string => {
+  return value.replace(/([,%_])/g, '\\$1');
+};
+
 const applyRecipeFilters = (
   recipes: Recipe[],
   options?: {
@@ -399,10 +403,24 @@ export const getRecipes = async (options?: { search?: string; category?: string 
   }
 
   try {
-    const { data: recipeRows, error: recipesError } = await supabase
+    const normalizedCategory = normalizeCategory(options?.category);
+    const cleanSearch = options?.search?.trim() ?? '';
+
+    let recipesQuery = supabase
       .from('recipes')
-      .select('id, title, category, image_url, ingredients, preparation, author_id, location_data, created_at')
-      .order('created_at', { ascending: false });
+      .select('id, title, category, image_url, ingredients, preparation, author_id, location_data, created_at');
+
+    if (normalizedCategory && normalizedCategory !== 'todas') {
+      const categoryPattern = escapePostgrestLikeValue(normalizedCategory);
+      recipesQuery = recipesQuery.ilike('category', `%${categoryPattern}%`);
+    }
+
+    if (cleanSearch) {
+      const searchPattern = escapePostgrestLikeValue(cleanSearch);
+      recipesQuery = recipesQuery.or(`title.ilike.%${searchPattern}%,category.ilike.%${searchPattern}%`);
+    }
+
+    const { data: recipeRows, error: recipesError } = await recipesQuery.order('created_at', { ascending: false });
 
     if (recipesError) {
       throw recipesError;

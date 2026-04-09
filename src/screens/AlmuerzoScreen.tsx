@@ -56,17 +56,20 @@ export const AlmuerzoScreen = () => {
           <Text style={styles.emptyText}>No hay almuerzos disponibles</Text>
         </View>
       ) : (
-        <FlatList
-          data={almuerzos}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          key={`almuerzo-grid-${numColumns}`}
-          numColumns={numColumns}
-          {...(numColumns > 1 ? { columnWrapperStyle: styles.columnWrapper } : {})}
-          contentContainerStyle={[styles.listContent, { maxWidth: contentMaxWidth, alignSelf: 'center' }]}
-          scrollIndicatorInsets={{ right: 1 }}
-          showsVerticalScrollIndicator={false}
-        />
+        <View style={styles.listContainer}>
+          <FlatList
+            data={almuerzos}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            key={`almuerzo-grid-${numColumns}`}
+            numColumns={numColumns}
+            {...(numColumns > 1 ? { columnWrapperStyle: styles.columnWrapper } : {})}
+            contentContainerStyle={styles.listContent}
+            scrollIndicatorInsets={{ right: 1 }}
+            showsVerticalScrollIndicator={false}
+            style={[styles.list, { maxWidth: contentMaxWidth }]}
+          />
+        </View>
       )}
     </SafeAreaView>
   );
@@ -86,6 +89,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 240,
     marginBottom: 4,
+  },
+  listContainer: {
+    flex: 1,
+  },
+  list: {
+    flex: 1,
+    width: '100%',
+    alignSelf: 'center',
   },
   listContent: {
     paddingTop: 34,

@@ -56,17 +56,20 @@ export const PostresScreen = () => {
           <Text style={styles.emptyText}>No hay postres disponibles</Text>
         </View>
       ) : (
-        <FlatList
-          data={postres}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          key={`postres-grid-${numColumns}`}
-          numColumns={numColumns}
-          {...(numColumns > 1 ? { columnWrapperStyle: styles.columnWrapper } : {})}
-          contentContainerStyle={[styles.listContent, { maxWidth: contentMaxWidth, alignSelf: 'center' }]}
-          scrollIndicatorInsets={{ right: 1 }}
-          showsVerticalScrollIndicator={false}
-        />
+        <View style={styles.listContainer}>
+          <FlatList
+            data={postres}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            key={`postres-grid-${numColumns}`}
+            numColumns={numColumns}
+            {...(numColumns > 1 ? { columnWrapperStyle: styles.columnWrapper } : {})}
+            contentContainerStyle={styles.listContent}
+            scrollIndicatorInsets={{ right: 1 }}
+            showsVerticalScrollIndicator={false}
+            style={[styles.list, { maxWidth: contentMaxWidth }]}
+          />
+        </View>
       )}
     </SafeAreaView>
   );
@@ -86,6 +89,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 240,
     marginBottom: 4,
+  },
+  listContainer: {
+    flex: 1,
+  },
+  list: {
+    flex: 1,
+    width: '100%',
+    alignSelf: 'center',
   },
   listContent: {
     paddingTop: 34,

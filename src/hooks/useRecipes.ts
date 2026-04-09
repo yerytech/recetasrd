@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { getRecipes } from '../services/supabase';
@@ -18,6 +18,7 @@ type UseRecipesOptions = {
  */
 export const useRecipes = (options?: UseRecipesOptions) => {
   const initialCategory = options?.initialCategory?.trim() || 'Todas';
+  const hasFocusedOnce = useRef(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +72,11 @@ export const useRecipes = (options?: UseRecipesOptions) => {
 
   useFocusEffect(
     useCallback(() => {
+      if (!hasFocusedOnce.current) {
+        hasFocusedOnce.current = true;
+        return undefined;
+      }
+
       void refreshRecipes();
       return undefined;
     }, [refreshRecipes]),
