@@ -57,6 +57,25 @@ export const ProfileScreen = ({}: Props) => {
   const [isNameEditorVisible, setIsNameEditorVisible] = useState(false);
   const [isPasswordEditorVisible, setIsPasswordEditorVisible] = useState(false);
 
+  const getAvatarUploadErrorMessage = useCallback((error: unknown): string => {
+    const rawMessage = error instanceof Error ? error.message : 'No se pudo subir la foto de perfil.';
+    const message = rawMessage.toLowerCase();
+
+    if (message.includes('permission') || message.includes('permiso')) {
+      return 'Falta permiso para acceder a la imagen. Revisa los permisos de galeria en ajustes.';
+    }
+
+    if (message.includes('leer la imagen') || message.includes('read') || message.includes('blob')) {
+      return 'No se pudo procesar la imagen seleccionada. Intenta con otra foto de la galeria.';
+    }
+
+    if (message.includes('storage') || message.includes('bucket') || message.includes('upload')) {
+      return 'No se pudo subir la imagen al servidor en este momento. Intenta de nuevo en unos minutos.';
+    }
+
+    return rawMessage;
+  }, []);
+
   const handleLogout = useCallback(async () => {
     try {
       setIsLoggingOut(true);
@@ -233,13 +252,13 @@ export const ProfileScreen = ({}: Props) => {
         await updateProfile(displayName.trim() || user.name, uploadedUrl);
         Alert.alert('Foto actualizada', 'Tu foto de perfil se subio correctamente.');
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'No se pudo subir la foto de perfil.';
+        const message = getAvatarUploadErrorMessage(error);
         Alert.alert('Error', message);
       } finally {
         setIsUploadingAvatar(false);
       }
     },
-    [displayName, updateProfile, user],
+    [displayName, getAvatarUploadErrorMessage, updateProfile, user],
   );
 
   const handlePickFromGallery = useCallback(async () => {

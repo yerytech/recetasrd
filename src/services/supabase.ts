@@ -33,7 +33,9 @@ type RatingRow = Database['public']['Tables']['ratings']['Row'];
 const DEFAULT_RECIPE_IMAGE =
   'https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=1200&q=80';
 const RECIPE_IMAGE_BUCKET = 'recipe-images';
-const PROFILE_AVATAR_BUCKET = 'profile-avatars';
+const PROFILE_AVATAR_BUCKET = 'profile-avatar';
+const PROFILE_AVATAR_BUCKET_FALLBACK = 'profile-avatars';
+const PROFILE_AVATAR_BUCKET_CANDIDATES = [PROFILE_AVATAR_BUCKET, PROFILE_AVATAR_BUCKET_FALLBACK] as const;
 
 const env = (globalThis as EnvironmentLike).process?.env ?? {};
 const supabaseUrl = env.EXPO_PUBLIC_SUPABASE_URL ?? '';
@@ -61,6 +63,18 @@ let localRatings: Rating[] = [...MOCK_RATINGS];
 const generateId = (prefix: string): string => `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
 const getBlobFromUri = async (uri: string): Promise<Blob> => {
+  // `fetch` handles local Expo URIs better on Android (including gallery-derived files).
+  try {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    if (blob.size > 0) {
+      return blob;
+    }
+  } catch {
+    // Fallback below keeps compatibility for environments where fetch over file URI fails.
+  }
+
   return await new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
 
@@ -83,6 +97,28 @@ const getBlobFromUri = async (uri: string): Promise<Blob> => {
     request.open('GET', uri, true);
     request.send(null);
   });
+};
+
+const getArrayBufferFromBase64 = (base64: string): ArrayBuffer => {
+  if (!base64.trim()) {
+    throw new Error('No se pudo procesar la imagen seleccionada.');
+  }
+
+  const decodeBase64 = globalThis.atob;
+
+  if (typeof decodeBase64 !== 'function') {
+    throw new Error('No se pudo procesar la imagen seleccionada.');
+  }
+
+  const binaryString = decodeBase64(base64);
+  const length = binaryString.length;
+  const bytes = new Uint8Array(length);
+
+  for (let index = 0; index < length; index += 1) {
+    bytes[index] = binaryString.charCodeAt(index);
+  }
+
+  return bytes.buffer;
 };
 
 const normalizeIngredient = (ingredient: unknown, index: number): Ingredient => {
@@ -838,10 +874,12 @@ export const uploadRecipeImage = async (imageUri: string, recipeId: string): Pro
     const compressedResult = await ImageManipulator.manipulateAsync(
       imageUri,
       [{ resize: { width: 600, height: 400 } }],
-      { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
+      { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG, base64: true }
     );
 
-    const fileBlob = await getBlobFromUri(compressedResult.uri);
+    const fileData = compressedResult.base64
+      ? getArrayBufferFromBase64(compressedResult.base64)
+      : await getBlobFromUri(compressedResult.uri);
 
     // Generar nombre único
     const fileName = `recipes/${recipeId}/image-${Date.now()}.jpg`;
@@ -849,7 +887,7 @@ export const uploadRecipeImage = async (imageUri: string, recipeId: string): Pro
     // Subir a Supabase Storage
     const { data, error } = await supabase.storage
       .from(RECIPE_IMAGE_BUCKET)
-      .upload(fileName, fileBlob, {
+      .upload(fileName, fileData, {
         contentType: 'image/jpeg',
         upsert: true,
       });
@@ -918,7 +956,7 @@ export const deleteRecipeImageByUrl = async (imageUrl: string): Promise<void> =>
   }
 };
 
-const getProfileAvatarPathFromUrl = (imageUrl: string): string | null => {
+const getProfileAvatarObjectFromUrl = (imageUrl: string): { bucketId: string; filePath: string } | null => {
   const cleanUrl = imageUrl.trim();
 
   if (!cleanUrl) {
@@ -927,17 +965,26 @@ const getProfileAvatarPathFromUrl = (imageUrl: string): string | null => {
 
   try {
     const url = new URL(cleanUrl);
-    const marker = `/storage/v1/object/public/${PROFILE_AVATAR_BUCKET}/`;
-    const markerIndex = url.pathname.indexOf(marker);
+    for (const bucketId of PROFILE_AVATAR_BUCKET_CANDIDATES) {
+      const marker = `/storage/v1/object/public/${bucketId}/`;
+      const markerIndex = url.pathname.indexOf(marker);
 
-    if (markerIndex === -1) {
-      return null;
+      if (markerIndex === -1) {
+        continue;
+      }
+
+      const encodedPath = url.pathname.slice(markerIndex + marker.length);
+      const decodedPath = decodeURIComponent(encodedPath).trim();
+
+      if (decodedPath) {
+        return {
+          bucketId,
+          filePath: decodedPath,
+        };
+      }
     }
 
-    const encodedPath = url.pathname.slice(markerIndex + marker.length);
-    const decodedPath = decodeURIComponent(encodedPath).trim();
-
-    return decodedPath || null;
+    return null;
   } catch {
     return null;
   }
@@ -952,32 +999,41 @@ export const uploadProfileAvatar = async (imageUri: string, userId: string): Pro
     const compressedResult = await ImageManipulator.manipulateAsync(
       imageUri,
       [{ resize: { width: 512, height: 512 } }],
-      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true },
     );
 
-    const fileBlob = await getBlobFromUri(compressedResult.uri);
+    const fileData = compressedResult.base64
+      ? getArrayBufferFromBase64(compressedResult.base64)
+      : await getBlobFromUri(compressedResult.uri);
     const fileName = `avatars/${userId}/avatar-${Date.now()}.jpg`;
 
-    const { error } = await supabase.storage
-      .from(PROFILE_AVATAR_BUCKET)
-      .upload(fileName, fileBlob, {
-        contentType: 'image/jpeg',
-        upsert: true,
-      });
+    let lastError: unknown = null;
 
-    if (error) {
-      throw error;
+    for (const bucketId of PROFILE_AVATAR_BUCKET_CANDIDATES) {
+      const { error } = await supabase.storage
+        .from(bucketId)
+        .upload(fileName, fileData, {
+          contentType: 'image/jpeg',
+          upsert: true,
+        });
+
+      if (error) {
+        lastError = error;
+        continue;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from(bucketId)
+        .getPublicUrl(fileName);
+
+      if (!publicUrlData?.publicUrl) {
+        throw new Error('No se pudo generar URL pública para el avatar.');
+      }
+
+      return publicUrlData.publicUrl;
     }
 
-    const { data: publicUrlData } = supabase.storage
-      .from(PROFILE_AVATAR_BUCKET)
-      .getPublicUrl(fileName);
-
-    if (!publicUrlData?.publicUrl) {
-      throw new Error('No se pudo generar URL pública para el avatar.');
-    }
-
-    return publicUrlData.publicUrl;
+    throw (lastError instanceof Error ? lastError : new Error('No se pudo subir la foto de perfil.'));
   } catch (error) {
     const message = error instanceof Error ? error.message : 'No se pudo subir la foto de perfil.';
     throw new Error(message);
@@ -989,13 +1045,13 @@ export const deleteProfileAvatarByUrl = async (imageUrl: string): Promise<void> 
     return;
   }
 
-  const filePath = getProfileAvatarPathFromUrl(imageUrl);
+  const avatarObject = getProfileAvatarObjectFromUrl(imageUrl);
 
-  if (!filePath) {
+  if (!avatarObject) {
     return;
   }
 
-  const { error } = await supabase.storage.from(PROFILE_AVATAR_BUCKET).remove([filePath]);
+  const { error } = await supabase.storage.from(avatarObject.bucketId).remove([avatarObject.filePath]);
 
   if (error) {
     throw new Error(error.message ?? 'No se pudo eliminar la foto de perfil de Supabase.');
