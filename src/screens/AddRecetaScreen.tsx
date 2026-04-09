@@ -11,8 +11,10 @@ import {
   Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Linking,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -505,8 +507,9 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{isEditMode ? 'Editar receta' : 'Agregar receta'}</Text>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoiding}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>{isEditMode ? 'Editar receta' : 'Agregar receta'}</Text>
 
         <Text adjustsFontSizeToFit minimumFontScale={0.82} numberOfLines={1} style={styles.label}>
           Nombre de la receta
@@ -663,12 +666,13 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
           wrapperStyle={styles.fullWidthField}
         />
 
-        <CustomButton
-          loading={isSaving}
-          onPress={handleSubmit}
-          title={isEditMode ? 'Guardar cambios' : 'Guardar receta'}
-        />
-      </ScrollView>
+          <CustomButton
+            loading={isSaving}
+            onPress={handleSubmit}
+            title={isEditMode ? 'Guardar cambios' : 'Guardar receta'}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <Modal animationType="slide" transparent visible={isImageModalVisible} onRequestClose={handleCloseImageModal}>
         <View style={styles.cameraModalBackdrop}>
@@ -754,6 +758,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  keyboardAvoiding: {
+    flex: 1,
   },
   container: {
     paddingHorizontal: LAYOUT.contentHorizontalPadding,

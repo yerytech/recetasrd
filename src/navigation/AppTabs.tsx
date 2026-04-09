@@ -1,5 +1,7 @@
 import { BottomTabBarProps as NavigationBottomTabBarProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { Keyboard, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomTabBar, HomeTabKey } from '../components/BottomTabBar';
@@ -30,12 +32,35 @@ const TAB_BY_ROUTE: Partial<Record<keyof AppTabsParamList, HomeTabKey>> = {
 
 const AppCustomTabBar = ({ state, navigation }: NavigationBottomTabBarProps) => {
   const insets = useSafeAreaInsets();
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const currentRoute = state.routes[state.index]?.name as keyof AppTabsParamList;
   const activeTab = TAB_BY_ROUTE[currentRoute];
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, () => {
+      setIsKeyboardVisible(true);
+    });
+
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   const handleTabPress = (tab: HomeTabKey) => {
     navigation.navigate(ROUTE_BY_TAB[tab]);
   };
+
+  if (isKeyboardVisible) {
+    return null;
+  }
 
   return (
     <View style={styles.tabBarWrapper}>

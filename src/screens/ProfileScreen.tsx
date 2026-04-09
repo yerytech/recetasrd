@@ -10,8 +10,10 @@ import {
   Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Linking,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -367,8 +369,9 @@ export const ProfileScreen = ({}: Props) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.avatarSection}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoiding}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <View style={styles.avatarSection}>
           <View style={styles.avatarContainer}>
             {user.avatarUrl ? (
               <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
@@ -498,15 +501,16 @@ export const ProfileScreen = ({}: Props) => {
               />
             </View>
           ) : null}
-        </View>
+          </View>
 
-        <CustomButton
-          loading={isLoggingOut}
-          onPress={handleLogout}
-          style={[styles.logoutButton, styles.profilePrimaryButton]}
-          title="Cerrar sesión"
-        />
-      </ScrollView>
+          <CustomButton
+            loading={isLoggingOut}
+            onPress={handleLogout}
+            style={[styles.logoutButton, styles.profilePrimaryButton]}
+            title="Cerrar sesión"
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <Modal animationType="slide" transparent visible={isAvatarModalVisible} onRequestClose={handleCloseAvatarModal}>
         <View style={styles.cameraModalBackdrop}>
@@ -579,6 +583,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  keyboardAvoiding: {
+    flex: 1,
   },
   container: {
     paddingHorizontal: LAYOUT.contentHorizontalPadding,

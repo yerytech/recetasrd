@@ -29,6 +29,7 @@
         "backgroundImage": "./assets/IconnosApp/android/res/mipmap-xxxhdpi/ic_launcher_background.png",
         "monochromeImage": "./assets/IconnosApp/android/res/mipmap-xxxhdpi/ic_launcher_monochrome.png"
       },
+      "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.recetas_rd",
       "permissions": [

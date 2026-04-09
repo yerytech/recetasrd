@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -293,7 +295,11 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={[styles.contentContainer, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoiding}>
+        <ScrollView
+          contentContainerStyle={[styles.contentContainer, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}
+          keyboardShouldPersistTaps="handled"
+        > 
         <View style={styles.coverImageWrapper}>
           <Image source={{ uri: recipe.imageUrl }} style={[styles.coverImage, { height: coverHeight }]} />
 
@@ -389,7 +395,8 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
             </>
           ) : null}
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Botón flotante para compartir la receta - está abajo a la derecha */}
       <Pressable onPress={handleShare} style={({ pressed }) => [styles.shareButton, pressed && styles.shareButtonPressed]}>
@@ -403,6 +410,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  keyboardAvoiding: {
+    flex: 1,
   },
   contentContainer: {
     paddingBottom: SPACING.xl,

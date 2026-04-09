@@ -63,7 +63,7 @@ export const RegisterScreen = ({ navigation }: Props) => {
     <LinearGradient colors={['#F2C078', '#C47F2A', '#A9651F']} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
           <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">

@@ -5,6 +5,8 @@ import { useEffect } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -36,8 +38,9 @@ export const SearchScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
-      <View style={styles.container}>
-        <Text style={styles.title}>Buscar recetas</Text>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoiding}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Buscar recetas</Text>
 
         <View style={styles.searchContainer}>
           <Ionicons color={COLORS.textSecondary} name="search-outline" size={20} />
@@ -52,22 +55,24 @@ export const SearchScreen = () => {
 
         {isLoading ? <ActivityIndicator color={COLORS.primary} style={styles.loader} /> : null}
         {isLoading ? <ActivityIndicator color={COLORS.primary} style={styles.loader} /> : null}
-        <FlatList
-          data={recipes}
-          contentContainerStyle={styles.listContent}
-          keyExtractor={(item) => item.id}
-          renderItem={renderRecipe}
-          showsVerticalScrollIndicator={false}
-          style={styles.list}
-          ListEmptyComponent={
-            !isLoading ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No hay resultados para tu búsqueda.</Text>
-              </View>
-            ) : null
-          }
-        />
-      </View>
+          <FlatList
+            data={recipes}
+            contentContainerStyle={styles.listContent}
+            keyExtractor={(item) => item.id}
+            keyboardShouldPersistTaps="handled"
+            renderItem={renderRecipe}
+            showsVerticalScrollIndicator={false}
+            style={styles.list}
+            ListEmptyComponent={
+              !isLoading ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No hay resultados para tu búsqueda.</Text>
+                </View>
+              ) : null
+            }
+          />
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -76,6 +81,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  keyboardAvoiding: {
+    flex: 1,
   },
   container: {
     flex: 1,
