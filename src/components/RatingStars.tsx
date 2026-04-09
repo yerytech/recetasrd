@@ -34,7 +34,11 @@ export const RatingStars = ({ rating, size = 16, onRate, showValue = false }: Ra
         })}
       </View>
 
-      {showValue ? <Text style={styles.value}>{rating.toFixed(1)}</Text> : null}
+      {showValue ? (
+        <Text numberOfLines={1} style={styles.value}>
+          {Number.isFinite(rating) ? rating.toFixed(1) : '0.0'}
+        </Text>
+      ) : null}
     </View>
   );
 };
@@ -56,5 +60,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
     fontWeight: '600',
+    minWidth: 28,
   },
 });

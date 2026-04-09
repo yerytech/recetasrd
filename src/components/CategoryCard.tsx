@@ -36,7 +36,12 @@ export const CategoryCard = ({ title, imageUrl, onPress, style }: CategoryCardPr
       style={({ pressed }) => [styles.container, { width: cardWidth, height: cardHeight }, style, pressed && styles.pressed]}
     >
       <Image source={{ uri: imageUrl }} style={[styles.image, { width: imageWidth, height: imageHeight }]} />
-      <Text numberOfLines={1} style={[styles.title, { fontSize: titleSize }]}>
+      <Text
+        adjustsFontSizeToFit
+        minimumFontScale={0.72}
+        numberOfLines={1}
+        style={[styles.title, { fontSize: titleSize }]}
+      >
         {title}
       </Text>
     </Pressable>
@@ -74,5 +79,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
+    width: '100%',
   },
 });

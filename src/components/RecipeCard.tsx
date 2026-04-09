@@ -62,5 +62,6 @@ const styles = StyleSheet.create({
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'nowrap',
   },
 });

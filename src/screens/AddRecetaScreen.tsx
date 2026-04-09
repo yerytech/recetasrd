@@ -1,13 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import * as MediaLibrary from 'expo-media-library';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Image,
+  Linking,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,13 +28,18 @@ import { COLORS, FONT_SIZE, LAYOUT, SPACING } from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
 import { useGetLocation } from '../hooks/useGetLocation';
 import { AppTabsParamList, RootStackParamList } from '../navigation/types';
-import { createRecipe, getRecipeById, updateRecipe, uploadRecipeImage } from '../services/supabase';
+import { createRecipe, deleteRecipeImageByUrl, getRecipeById, updateRecipe, uploadRecipeImage } from '../services/supabase';
 import { Ingredient, LocationPoint } from '../types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = BottomTabScreenProps<AppTabsParamList, 'AddTab'>;
 
 type EditableIngredient = Ingredient;
+
+interface GalleryAssetItem {
+  id: string;
+  uri: string;
+}
 
 interface LocationData {
   address: string;
@@ -70,6 +80,8 @@ const sanitizeIngredientLocations = (ingredients: EditableIngredient[]): Editabl
 export const AddRecetaScreen = ({ navigation, route }: Props) => {
   const { user } = useAuth();
   const { getLocation, isLoading: isLocationLoading } = useGetLocation();
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const cameraRef = useRef<any>(null);
   const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
   const categories = useMemo(() => RECIPE_CATEGORIES.filter((category) => category !== 'Todas'), []);
   const recipeIdToEdit = route.params?.recipeId;
@@ -84,6 +96,11 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
+  const [isLoadingGalleryAssets, setIsLoadingGalleryAssets] = useState(false);
+  const [galleryAssets, setGalleryAssets] = useState<GalleryAssetItem[]>([]);
+  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<CameraType>('back');
+  const [isCapturingPhoto, setIsCapturingPhoto] = useState(false);
 
   const resetForm = useCallback(() => {
     setTitle('');
@@ -247,26 +264,170 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
     resetForm();
   }, [isEditMode, loadRecipeToEdit, resetForm]);
 
-  const handleSelectImage = async () => {
+  useEffect(() => {
+    void loadRecentGalleryAssets();
+  }, []);
+
+  const applyPickedImage = (
+    result: ImagePicker.ImagePickerResult,
+    source: 'camara' | 'galeria',
+  ): boolean => {
+    if (result.canceled || !result.assets[0]) {
+      Alert.alert(
+        'Sin imagen',
+        source === 'camara'
+          ? 'No se tomó ninguna foto. Puedes intentarlo de nuevo o elegir una del carrusel.'
+          : 'No se seleccionó ninguna imagen.',
+      );
+      return false;
+    }
+
+    setImageUri(result.assets[0].uri);
+    setIsImageModalVisible(false);
+    return true;
+  };
+
+  const loadRecentGalleryAssets = async () => {
     try {
+      setIsLoadingGalleryAssets(true);
+
+      const permission = await MediaLibrary.requestPermissionsAsync();
+      if (permission.status !== 'granted') {
+        Alert.alert(
+          'Permiso de galeria',
+          'Para mostrar fotos recientes del telefono, permite el acceso a la galeria.',
+          [
+            {
+              text: 'Abrir ajustes',
+              onPress: () => {
+                void Linking.openSettings();
+              },
+            },
+            { text: 'Cancelar', style: 'cancel' },
+          ],
+        );
+        setGalleryAssets([]);
+        return;
+      }
+
+      const assets = await MediaLibrary.getAssetsAsync({
+        first: 80,
+        mediaType: 'photo',
+        sortBy: ['creationTime'],
+      });
+
+      setGalleryAssets(
+        assets.assets.map((asset) => ({
+          id: asset.id,
+          uri: asset.uri,
+        })),
+      );
+    } catch {
+      setGalleryAssets([]);
+    } finally {
+      setIsLoadingGalleryAssets(false);
+    }
+  };
+
+  const handlePickFromGallery = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permission.status !== 'granted') {
+        Alert.alert('Permiso requerido', 'Se necesita acceso a la galería para seleccionar una imagen.');
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [16, 9],
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        setImageUri(result.assets[0].uri);
-      }
+      applyPickedImage(result, 'galeria');
     } catch {
       Alert.alert('Error', 'No se pudo seleccionar la imagen.');
     }
   };
 
-  const handleRemoveImage = () => {
+  const handleCapturePhotoFromModal = async () => {
+    try {
+      if (!cameraPermission?.granted) {
+        Alert.alert('Permiso requerido', 'Se necesita acceso a la camara para tomar una foto.');
+        return;
+      }
+
+      if (!cameraRef.current) {
+        Alert.alert('Camara no lista', 'La camara aun no esta lista. Intenta de nuevo.');
+        return;
+      }
+
+      setIsCapturingPhoto(true);
+
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.8,
+      });
+
+      if (!photo?.uri) {
+        Alert.alert('Sin imagen', 'No se pudo capturar la foto. Intenta de nuevo.');
+        return;
+      }
+
+      setImageUri(photo.uri);
+      setIsImageModalVisible(false);
+    } catch {
+      Alert.alert('Error', 'No se pudo abrir la camara.');
+    } finally {
+      setIsCapturingPhoto(false);
+    }
+  };
+
+  const handleSelectGalleryAsset = (assetUri: string) => {
+    setImageUri(assetUri);
+    setIsImageModalVisible(false);
+  };
+
+  const handleSelectImage = async () => {
+    const permissionResult = cameraPermission?.granted
+      ? cameraPermission
+      : await requestCameraPermission();
+
+    if (!permissionResult?.granted) {
+      Alert.alert('Permiso requerido', 'Se necesita acceso a la camara para continuar.');
+      return;
+    }
+
+    setIsImageModalVisible(true);
+    void loadRecentGalleryAssets();
+  };
+
+  const handleCloseImageModal = () => {
+    setIsImageModalVisible(false);
+  };
+
+  const toggleCameraFacing = () => {
+    setCameraFacing((previous) => (previous === 'back' ? 'front' : 'back'));
+  };
+
+  const handleRemoveImage = async () => {
+    const previousImageUrl = imageUrl.trim();
+
     setImageUri(null);
     setImageUrl('');
+
+    if (!previousImageUrl) {
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+      await deleteRecipeImageByUrl(previousImageUrl);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo eliminar la imagen en Supabase.';
+      Alert.alert('Aviso', `${message} La imagen se quitó de la receta localmente.`);
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -369,7 +530,12 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
           {imageUri || imageUrl ? (
             <View style={styles.imagePreviewContainer}>
               <Image source={{ uri: imageUri || imageUrl }} style={styles.imagePreview} />
-              <Pressable onPress={handleRemoveImage} style={styles.removeImageButton}>
+              <Pressable
+                onPress={() => {
+                  void handleRemoveImage();
+                }}
+                style={styles.removeImageButton}
+              >
                 <Ionicons color="#FFFFFF" name="close-circle" size={24} />
               </Pressable>
             </View>
@@ -381,10 +547,11 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
             >
               <Ionicons color={COLORS.primary} name="image-outline" size={32} />
               <Text adjustsFontSizeToFit minimumFontScale={0.82} numberOfLines={1} style={styles.selectImageButtonText}>
-                {isUploadingImage ? 'Subiendo imagen...' : 'Selecciona una imagen'}
+                {isUploadingImage ? 'Subiendo imagen...' : 'Agregar imagen'}
               </Text>
             </Pressable>
           )}
+
         </View>
 
         <CustomInput
@@ -402,7 +569,9 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
           </Text>
           <Pressable onPress={addIngredientField} style={styles.addIngredientButton}>
             <Ionicons color={COLORS.primary} name="add-circle-outline" size={20} />
-            <Text style={styles.addIngredientText}>Agregar</Text>
+            <Text adjustsFontSizeToFit minimumFontScale={0.9} numberOfLines={1} style={styles.addIngredientText}>
+              Agregar
+            </Text>
           </Pressable>
         </View>
 
@@ -500,6 +669,83 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
           title={isEditMode ? 'Guardar cambios' : 'Guardar receta'}
         />
       </ScrollView>
+
+      <Modal animationType="slide" transparent visible={isImageModalVisible} onRequestClose={handleCloseImageModal}>
+        <View style={styles.cameraModalBackdrop}>
+          <View style={styles.cameraModalSheet}>
+            <View style={styles.cameraPreviewContainer}>
+              <CameraView ref={cameraRef} facing={cameraFacing} style={styles.cameraPreview} />
+
+              <View style={styles.cameraTopActions}>
+                <Pressable onPress={handleCloseImageModal} style={styles.cameraIconButton}>
+                  <Ionicons color="#FFFFFF" name="close" size={22} />
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    void handlePickFromGallery();
+                  }}
+                  style={styles.cameraIconButton}
+                >
+                  <Ionicons color="#FFFFFF" name="images" size={26} />
+                </Pressable>
+              </View>
+
+              <View style={styles.cameraBottomActions}>
+                <Pressable onPress={toggleCameraFacing} style={styles.cameraIconButton}>
+                  <Ionicons color="#FFFFFF" name="camera-reverse" size={20} />
+                </Pressable>
+
+                <Pressable
+                  disabled={isCapturingPhoto}
+                  onPress={() => {
+                    void handleCapturePhotoFromModal();
+                  }}
+                  style={[styles.captureButtonOuter, isCapturingPhoto && styles.captureButtonOuterDisabled]}
+                >
+                  <View style={styles.captureButtonInner} />
+                </Pressable>
+
+                <View style={styles.cameraBottomSpacer} />
+              </View>
+            </View>
+
+            <View style={styles.modalCarouselSection}>
+              {isLoadingGalleryAssets ? (
+                <View style={styles.galleryCarouselLoadingState}>
+                  <ActivityIndicator color={COLORS.primary} />
+                </View>
+              ) : (
+                <FlatList
+                  horizontal
+                  data={galleryAssets}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                    <Pressable
+                      onPress={() => handleSelectGalleryAsset(item.uri)}
+                      style={[
+                        styles.galleryCarouselItem,
+                        imageUri === item.uri && styles.galleryCarouselItemSelected,
+                      ]}
+                    >
+                      <Image source={{ uri: item.uri }} style={styles.galleryCarouselImage} />
+                      {imageUri === item.uri ? (
+                        <View style={styles.galleryCarouselSelectedBadge}>
+                          <Ionicons color="#FFFFFF" name="checkmark" size={12} />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  )}
+                  ListEmptyComponent={
+                    null
+                  }
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.galleryCarouselList}
+                />
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -552,12 +798,16 @@ const styles = StyleSheet.create({
   addIngredientButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: SPACING.xs,
+    minWidth: 82,
   },
   addIngredientText: {
     marginLeft: 4,
     fontSize: FONT_SIZE.sm,
+    lineHeight: FONT_SIZE.sm + 4,
     color: COLORS.primary,
     fontWeight: '700',
+    flexShrink: 0,
   },
   ingredientRowContainer: {
     backgroundColor: COLORS.inputBackground,
@@ -650,6 +900,129 @@ const styles = StyleSheet.create({
   imageSelector: {
     marginBottom: SPACING.md,
   },
+  cameraModalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  cameraModalSheet: {
+    backgroundColor: COLORS.background,
+    width: '94%',
+    height: '82%',
+    padding: 0,
+    borderWidth: 8,
+    borderColor: COLORS.primary,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  cameraPreviewContainer: {
+    flex: 1,
+    overflow: 'visible',
+    backgroundColor: '#000000',
+  },
+  cameraPreview: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  cameraTopActions: {
+    position: 'absolute',
+    top: SPACING.xl,
+    left: SPACING.xl,
+    right: SPACING.xl,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cameraBottomActions: {
+    position: 'absolute',
+    left: SPACING.xl,
+    right: SPACING.xl,
+    bottom: SPACING.xl + SPACING.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cameraBottomSpacer: {
+    width: 44,
+    height: 44,
+  },
+  cameraIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  captureButtonOuter: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  captureButtonOuterDisabled: {
+    opacity: 0.6,
+  },
+  captureButtonInner: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#FFFFFF',
+  },
+  modalCarouselSection: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    maxHeight: 170,
+    backgroundColor: 'rgba(0, 0, 0, 0.48)',
+  },
+  galleryCarouselSection: {
+    marginTop: SPACING.sm,
+  },
+  galleryCarouselList: {
+    gap: SPACING.xs,
+    paddingBottom: SPACING.xs,
+  },
+  galleryCarouselLoadingState: {
+    paddingVertical: SPACING.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  galleryCarouselItem: {
+    width: 104,
+    height: 104,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: COLORS.inputBackground,
+    marginRight: SPACING.xs,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  galleryCarouselItemSelected: {
+    borderColor: COLORS.primary,
+  },
+  galleryCarouselImage: {
+    width: '100%',
+    height: '100%',
+  },
+  galleryCarouselSelectedBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   imagePreviewContainer: {
     position: 'relative',
     borderRadius: 12,
@@ -686,5 +1059,11 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     color: COLORS.primary,
     fontWeight: '600',
+  },
+  galleryEmptyText: {
+    textAlign: 'left',
+    color: '#FFFFFF',
+    fontSize: FONT_SIZE.xs,
+    paddingVertical: SPACING.sm,
   },
 });

@@ -32,6 +32,8 @@ type RatingRow = Database['public']['Tables']['ratings']['Row'];
 
 const DEFAULT_RECIPE_IMAGE =
   'https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=1200&q=80';
+const RECIPE_IMAGE_BUCKET = 'recipe-images';
+const PROFILE_AVATAR_BUCKET = 'profile-avatars';
 
 const env = (globalThis as EnvironmentLike).process?.env ?? {};
 const supabaseUrl = env.EXPO_PUBLIC_SUPABASE_URL ?? '';
@@ -174,12 +176,14 @@ const mapSupabaseUserToAppUser = (supabaseUser: SupabaseAuthUser, fallbackName?:
   const metadataName =
     typeof supabaseUser.user_metadata?.name === 'string' ? supabaseUser.user_metadata.name : undefined;
   const name = metadataName?.trim() || fallbackName?.trim() || 'Usuario Recetas RD';
+  const metadataAvatar =
+    typeof supabaseUser.user_metadata?.avatar_url === 'string' ? supabaseUser.user_metadata.avatar_url : null;
 
   return {
     id: supabaseUser.id,
     name,
     email: supabaseUser.email ?? '',
-    avatarUrl: null,
+    avatarUrl: metadataAvatar,
   };
 };
 
@@ -285,6 +289,54 @@ export const recoverAccount = async (email: string): Promise<void> => {
 
   if (error) {
     throw new Error(error.message ?? 'No se pudo enviar el correo de recuperación.');
+  }
+};
+
+export const updateAccountProfile = async (name: string, avatarUrl?: string | null): Promise<User> => {
+  const cleanName = name.trim();
+
+  if (!cleanName) {
+    throw new Error('El nombre no puede estar vacío.');
+  }
+
+  const authClient = getSupabaseAuthClient();
+  const currentSession = await authClient.auth.getUser();
+  const currentUser = currentSession.data.user;
+
+  if (!currentUser) {
+    throw new Error('No hay sesión activa.');
+  }
+
+  const nextAvatarUrl = avatarUrl === undefined
+    ? (typeof currentUser.user_metadata?.avatar_url === 'string' ? currentUser.user_metadata.avatar_url : null)
+    : avatarUrl;
+
+  const { data, error } = await authClient.auth.updateUser({
+    data: {
+      name: cleanName,
+      avatar_url: nextAvatarUrl,
+    },
+  });
+
+  if (error || !data.user) {
+    throw new Error(error?.message ?? 'No se pudo actualizar el perfil.');
+  }
+
+  return mapSupabaseUserToAppUser(data.user, cleanName);
+};
+
+export const updateAccountPassword = async (newPassword: string): Promise<void> => {
+  const cleanPassword = newPassword.trim();
+
+  if (cleanPassword.length < 8) {
+    throw new Error('La nueva contraseña debe tener al menos 8 caracteres.');
+  }
+
+  const authClient = getSupabaseAuthClient();
+  const { error } = await authClient.auth.updateUser({ password: cleanPassword });
+
+  if (error) {
+    throw new Error(error.message ?? 'No se pudo actualizar la contraseña.');
   }
 };
 
@@ -656,7 +708,7 @@ export const deleteRecipe = async (recipeId: string, userId: string): Promise<vo
     // Verificar que el usuario es el autor
     const { data: recipeData, error: fetchError } = await supabase
       .from('recipes')
-      .select('author_id')
+      .select('author_id, image_url')
       .eq('id', recipeId)
       .single();
 
@@ -666,6 +718,16 @@ export const deleteRecipe = async (recipeId: string, userId: string): Promise<vo
 
     if (recipeData.author_id !== userId) {
       throw new Error('Solo el autor puede eliminar la receta.');
+    }
+
+    const recipeImageUrl = typeof recipeData.image_url === 'string' ? recipeData.image_url.trim() : '';
+
+    if (recipeImageUrl) {
+      try {
+        await deleteRecipeImageByUrl(recipeImageUrl);
+      } catch {
+        // Best effort cleanup: if storage deletion fails, keep deleting recipe data.
+      }
     }
 
     // Eliminar la receta y sus comentarios/ratings relacionados
@@ -716,7 +778,7 @@ export const uploadRecipeImage = async (imageUri: string, recipeId: string): Pro
 
     // Subir a Supabase Storage
     const { data, error } = await supabase.storage
-      .from('recipe-images')
+      .from(RECIPE_IMAGE_BUCKET)
       .upload(fileName, fileBlob, {
         contentType: 'image/jpeg',
         upsert: true,
@@ -728,7 +790,7 @@ export const uploadRecipeImage = async (imageUri: string, recipeId: string): Pro
 
     // Generar URL pública
     const { data: publicUrlData } = supabase.storage
-      .from('recipe-images')
+      .from(RECIPE_IMAGE_BUCKET)
       .getPublicUrl(fileName);
 
     if (!publicUrlData?.publicUrl) {
@@ -739,5 +801,134 @@ export const uploadRecipeImage = async (imageUri: string, recipeId: string): Pro
   } catch (error) {
     const message = error instanceof Error ? error.message : 'No se pudo subir la imagen.';
     throw new Error(message);
+  }
+};
+
+const getRecipeImagePathFromUrl = (imageUrl: string): string | null => {
+  const cleanUrl = imageUrl.trim();
+
+  if (!cleanUrl) {
+    return null;
+  }
+
+  try {
+    const url = new URL(cleanUrl);
+    const marker = `/storage/v1/object/public/${RECIPE_IMAGE_BUCKET}/`;
+    const markerIndex = url.pathname.indexOf(marker);
+
+    if (markerIndex === -1) {
+      return null;
+    }
+
+    const encodedPath = url.pathname.slice(markerIndex + marker.length);
+    const decodedPath = decodeURIComponent(encodedPath).trim();
+
+    return decodedPath || null;
+  } catch {
+    return null;
+  }
+};
+
+export const deleteRecipeImageByUrl = async (imageUrl: string): Promise<void> => {
+  if (!supabase) {
+    return;
+  }
+
+  const filePath = getRecipeImagePathFromUrl(imageUrl);
+
+  // Ignore non-Supabase or external image URLs.
+  if (!filePath) {
+    return;
+  }
+
+  const { error } = await supabase.storage.from(RECIPE_IMAGE_BUCKET).remove([filePath]);
+
+  if (error) {
+    throw new Error(error.message ?? 'No se pudo eliminar la imagen de Supabase.');
+  }
+};
+
+const getProfileAvatarPathFromUrl = (imageUrl: string): string | null => {
+  const cleanUrl = imageUrl.trim();
+
+  if (!cleanUrl) {
+    return null;
+  }
+
+  try {
+    const url = new URL(cleanUrl);
+    const marker = `/storage/v1/object/public/${PROFILE_AVATAR_BUCKET}/`;
+    const markerIndex = url.pathname.indexOf(marker);
+
+    if (markerIndex === -1) {
+      return null;
+    }
+
+    const encodedPath = url.pathname.slice(markerIndex + marker.length);
+    const decodedPath = decodeURIComponent(encodedPath).trim();
+
+    return decodedPath || null;
+  } catch {
+    return null;
+  }
+};
+
+export const uploadProfileAvatar = async (imageUri: string, userId: string): Promise<string> => {
+  if (!supabase) {
+    return imageUri;
+  }
+
+  try {
+    const compressedResult = await ImageManipulator.manipulateAsync(
+      imageUri,
+      [{ resize: { width: 512, height: 512 } }],
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+    );
+
+    const fileResponse = await fetch(compressedResult.uri);
+    const fileBlob = await fileResponse.blob();
+    const fileName = `avatars/${userId}/avatar-${Date.now()}.jpg`;
+
+    const { error } = await supabase.storage
+      .from(PROFILE_AVATAR_BUCKET)
+      .upload(fileName, fileBlob, {
+        contentType: 'image/jpeg',
+        upsert: true,
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from(PROFILE_AVATAR_BUCKET)
+      .getPublicUrl(fileName);
+
+    if (!publicUrlData?.publicUrl) {
+      throw new Error('No se pudo generar URL pública para el avatar.');
+    }
+
+    return publicUrlData.publicUrl;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'No se pudo subir la foto de perfil.';
+    throw new Error(message);
+  }
+};
+
+export const deleteProfileAvatarByUrl = async (imageUrl: string): Promise<void> => {
+  if (!supabase) {
+    return;
+  }
+
+  const filePath = getProfileAvatarPathFromUrl(imageUrl);
+
+  if (!filePath) {
+    return;
+  }
+
+  const { error } = await supabase.storage.from(PROFILE_AVATAR_BUCKET).remove([filePath]);
+
+  if (error) {
+    throw new Error(error.message ?? 'No se pudo eliminar la foto de perfil de Supabase.');
   }
 };

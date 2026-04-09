@@ -32,7 +32,9 @@ export const RecipeListItem = ({
 
         <View style={styles.ratingRow}>
           <Ionicons color="#F2C94C" name="star" size={14} />
-          <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+          <Text numberOfLines={1} style={styles.ratingText}>
+            {Number.isFinite(rating) ? rating.toFixed(1) : '0.0'}
+          </Text>
         </View>
       </View>
 
@@ -81,12 +83,14 @@ const styles = StyleSheet.create({
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'nowrap',
   },
   ratingText: {
     marginLeft: 4,
     fontSize: 13,
     color: '#777777',
     fontWeight: '600',
+    minWidth: 28,
   },
   favoriteButton: {
     width: 28,

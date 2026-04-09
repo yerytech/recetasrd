@@ -2,7 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { STORAGE_KEYS } from '../constants/storage';
-import { loginUser, recoverAccount, registerUser, supabase } from '../services/supabase';
+import {
+  loginUser,
+  recoverAccount,
+  registerUser,
+  supabase,
+  updateAccountPassword,
+  updateAccountProfile,
+} from '../services/supabase';
 import { User } from '../types';
 
 type AuthContextValue = {
@@ -11,6 +18,8 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   recoverPassword: (email: string) => Promise<void>;
+  updateProfile: (name: string, avatarUrl?: string | null) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -69,7 +78,10 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
                 ? parsedStoredUser.name
                 : 'Usuario Recetas RD',
           email: session.user.email ?? (parsedStoredUser ? parsedStoredUser.email : ''),
-          avatarUrl: null,
+            avatarUrl:
+              typeof session.user.user_metadata?.avatar_url === 'string'
+                ? session.user.user_metadata.avatar_url
+                : parsedStoredUser?.avatarUrl ?? null,
         };
 
         setUser(restoredUser);
@@ -113,7 +125,10 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
             ? sessionUser.user_metadata.name
             : storedUser?.name ?? 'Usuario Recetas RD',
         email: sessionUser.email ?? storedUser?.email ?? '',
-        avatarUrl: null,
+        avatarUrl:
+          typeof sessionUser.user_metadata?.avatar_url === 'string'
+            ? sessionUser.user_metadata.avatar_url
+            : storedUser?.avatarUrl ?? null,
       };
 
       setUser(nextUser);
@@ -146,6 +161,19 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     await recoverAccount(email);
   }, []);
 
+  const updateProfile = useCallback(
+    async (name: string, avatarUrl?: string | null) => {
+      const updatedUser = await updateAccountProfile(name, avatarUrl);
+      setUser(updatedUser);
+      await persistUser(updatedUser);
+    },
+    [persistUser],
+  );
+
+  const updatePassword = useCallback(async (newPassword: string) => {
+    await updateAccountPassword(newPassword);
+  }, []);
+
   const logout = useCallback(async () => {
     if (supabase) {
       await supabase.auth.signOut();
@@ -162,9 +190,11 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       login,
       register,
       recoverPassword,
+      updateProfile,
+      updatePassword,
       logout,
     }),
-    [isLoading, login, logout, recoverPassword, register, user],
+    [isLoading, login, logout, recoverPassword, register, updatePassword, updateProfile, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

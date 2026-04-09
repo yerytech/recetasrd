@@ -285,11 +285,16 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
     );
   }
 
+  const ratingsCountLabel =
+    recipe.ratingsCount === 1
+      ? '1 persona ha dejado puntuacion'
+      : `${recipe.ratingsCount} personas han dejado puntuacion`;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={[styles.contentContainer, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
-        <View>
+        <View style={styles.coverImageWrapper}>
           <Image source={{ uri: recipe.imageUrl }} style={[styles.coverImage, { height: coverHeight }]} />
 
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -324,7 +329,7 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
 
           <View style={styles.ratingSummary}>
             <RatingStars rating={recipe.averageRating} showValue size={18} />
-            <Text style={styles.ratingCount}>({recipe.ratingsCount} calificaciones)</Text>
+            <Text style={styles.ratingCount}>{ratingsCountLabel}</Text>
           </View>
 
           <CustomButton loading={isAddingToList} onPress={handleAddToShoppingList} title="Agregar a lista" />
@@ -408,6 +413,10 @@ const styles = StyleSheet.create({
     height: 260,
     backgroundColor: COLORS.secondary,
   },
+  coverImageWrapper: {
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
   backButton: {
     position: 'absolute',
     top: SPACING.md,
@@ -467,14 +476,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ratingSummary: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: SPACING.md,
+    gap: 4,
   },
   ratingCount: {
-    marginLeft: SPACING.xs,
     color: COLORS.textSecondary,
     fontSize: FONT_SIZE.sm,
+    lineHeight: FONT_SIZE.sm + 4,
   },
   sectionTitle: {
     marginTop: SPACING.lg,
