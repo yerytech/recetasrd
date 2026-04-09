@@ -27,6 +27,18 @@ const appleIcon = require('../../assets/apple icon.png');
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
+const isConnectivityError = (message: string): boolean => {
+  const normalized = message.toLowerCase();
+
+  return (
+    normalized.includes('network request failed') ||
+    normalized.includes('failed to fetch') ||
+    normalized.includes('offline') ||
+    normalized.includes('internet') ||
+    normalized.includes('conex')
+  );
+};
+
 export const LoginScreen = ({ navigation }: Props) => {
   const { login, recoverPassword } = useAuth();
   const { width } = useWindowDimensions();
@@ -38,7 +50,10 @@ export const LoginScreen = ({ navigation }: Props) => {
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showRecoverModal, setShowRecoverModal] = useState(false);
+  const [errorTitle, setErrorTitle] = useState('Error de Credenciales');
   const [errorMessage, setErrorMessage] = useState('');
+  const [errorHint, setErrorHint] = useState('Por favor revisa tu correo y contraseña.');
+  const [errorIcon, setErrorIcon] = useState<'alert-circle' | 'wifi-outline'>('alert-circle');
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [isRecoveringAccount, setIsRecoveringAccount] = useState(false);
 
@@ -71,7 +86,19 @@ export const LoginScreen = ({ navigation }: Props) => {
       await login(email, password);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo iniciar sesión.';
-      setErrorMessage(message);
+
+      if (isConnectivityError(message)) {
+        setErrorTitle('Sin conexión a Internet');
+        setErrorMessage('Para iniciar sesión necesitas una conexión estable a Internet.');
+        setErrorHint('Verifica tu Wi-Fi o datos móviles e inténtalo de nuevo.');
+        setErrorIcon('wifi-outline');
+      } else {
+        setErrorTitle('Error de Credenciales');
+        setErrorMessage(message);
+        setErrorHint('Por favor revisa tu correo y contraseña.');
+        setErrorIcon('alert-circle');
+      }
+
       setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
@@ -237,11 +264,11 @@ export const LoginScreen = ({ navigation }: Props) => {
             <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowErrorModal(false)} />
             <View style={styles.errorModalCard}>
               <View style={styles.errorIconContainer}>
-                <Ionicons name="alert-circle" size={48} color="#C47F2A" />
+                <Ionicons name={errorIcon} size={48} color="#C47F2A" />
               </View>
-              <Text style={styles.errorModalTitle}>Error de Credenciales</Text>
+              <Text style={styles.errorModalTitle}>{errorTitle}</Text>
               <Text style={styles.errorModalMessage}>{errorMessage}</Text>
-              <Text style={styles.errorModalHint}>Por favor revisa tu correo y contraseña.</Text>
+              <Text style={styles.errorModalHint}>{errorHint}</Text>
               <Pressable style={styles.errorModalButton} onPress={() => setShowErrorModal(false)}>
                 <Text style={styles.errorModalButtonText}>Intentar de Nuevo</Text>
               </Pressable>
