@@ -375,9 +375,8 @@ export const RecipeDetailScreen = ({ navigation, route }: Props) => {
               <CustomButton
                 loading={isSubmittingComment}
                 onPress={handleSubmitComment}
-                style={styles.commentButton}
+                style={[styles.commentButton, styles.commentPrimaryButton]}
                 title="Publicar comentario"
-                variant="secondary"
               />
 
               <View style={styles.commentsList}>
@@ -526,6 +525,9 @@ const styles = StyleSheet.create({
   },
   commentButton: {
     marginBottom: SPACING.md,
+  },
+  commentPrimaryButton: {
+    backgroundColor: COLORS.primary,
   },
   commentsList: {
     marginTop: SPACING.xs,
