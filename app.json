@@ -4,10 +4,10 @@
     "slug": "recetas_rd",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/iconos de la app/android/play_store_512.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/logo.png",
+      "image": "./assets/iconos de la app/web/icon-512.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,6 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
+      "icon": "./assets/iconos de la app/ios/AppIcon@3x.png",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Se necesita tu ubicación para registrar dónde se preparó la receta",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Se necesita tu ubicación para registrar dónde se preparó la receta"
@@ -25,9 +26,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#FF7A00",
-        "foregroundImage": "./assets/IconnosApp/android/res/mipmap-xxxhdpi/ic_launcher_foreground.png",
-        "backgroundImage": "./assets/IconnosApp/android/res/mipmap-xxxhdpi/ic_launcher_background.png",
-        "monochromeImage": "./assets/IconnosApp/android/res/mipmap-xxxhdpi/ic_launcher_monochrome.png"
+        "foregroundImage": "./assets/iconos de la app/android/res/mipmap-xxxhdpi/ic_launcher_foreground.png",
+        "backgroundImage": "./assets/iconos de la app/android/res/mipmap-xxxhdpi/ic_launcher_background.png",
+        "monochromeImage": "./assets/iconos de la app/android/res/mipmap-xxxhdpi/ic_launcher_monochrome.png"
       },
       "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
@@ -38,7 +39,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/logo.png"
+      "favicon": "./assets/iconos de la app/web/icon-192.png"
     },
     "scheme": "recetasrd",
     "extra": {
