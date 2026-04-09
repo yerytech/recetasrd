@@ -4,6 +4,8 @@ import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useS
 import { STORAGE_KEYS } from '../constants/storage';
 import {
   loginUser,
+  // loginWithGoogle,
+  // loginWithApple,
   recoverAccount,
   registerUser,
   supabase,
@@ -16,6 +18,8 @@ type AuthContextValue = {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  // loginWithGoogleOAuth: () => Promise<void>;
+  // loginWithAppleOAuth: () => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   recoverPassword: (email: string) => Promise<void>;
   updateProfile: (name: string, avatarUrl?: string | null) => Promise<void>;
@@ -150,6 +154,25 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     [persistUser],
   );
 
+  // TODO: Habilitar cuando Supabase esté configurado
+  // const loginWithGoogleOAuth = useCallback(
+  //   async () => {
+  //     const loggedUser = await loginWithGoogle();
+  //     setUser(loggedUser);
+  //     await persistUser(loggedUser);
+  //   },
+  //   [persistUser],
+  // );
+  //
+  // const loginWithAppleOAuth = useCallback(
+  //   async () => {
+  //     const loggedUser = await loginWithApple();
+  //     setUser(loggedUser);
+  //     await persistUser(loggedUser);
+  //   },
+  //   [persistUser],
+  // );
+
   const register = useCallback(
     async (name: string, email: string, password: string) => {
       await registerUser({ name, email, password });
@@ -188,13 +211,15 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       user,
       isLoading,
       login,
+      // loginWithGoogleOAuth,
+      // loginWithAppleOAuth,
       register,
       recoverPassword,
       updateProfile,
       updatePassword,
       logout,
     }),
-    [isLoading, login, logout, recoverPassword, register, updatePassword, updateProfile, user],
+    [isLoading, login, /* loginWithGoogleOAuth, loginWithAppleOAuth, */ logout, recoverPassword, register, updatePassword, updateProfile, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

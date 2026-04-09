@@ -3,6 +3,8 @@ import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, User as SupabaseAuthUser } from '@supabase/supabase-js';
 import * as ImageManipulator from 'expo-image-manipulator';
+// import * as WebBrowser from 'expo-web-browser';
+// import * as AuthSession from 'expo-auth-session';
 
 import { MOCK_COMMENTS, MOCK_RATINGS, MOCK_RECIPES, MOCK_USERS } from '../constants/mockData';
 import { Database, Json } from '../types/supabase';
@@ -342,6 +344,102 @@ export const loginUser = async (email: string, password: string): Promise<User> 
 
   return mapSupabaseUserToAppUser(data.user);
 };
+
+// TODO: Habilitar cuando Supabase esté configurado con OAuth
+// export const loginWithGoogle = async (): Promise<User> => {
+//   const authClient = getSupabaseAuthClient();
+//   const redirectUrl = AuthSession.makeRedirectUrl({
+//     path: '/auth/callback',
+//   });
+//
+//   try {
+//     const { data, error } = await authClient.auth.signInWithOAuth({
+//       provider: 'google',
+//       options: {
+//         redirectTo: redirectUrl,
+//         scopes: ['profile', 'email'],
+//         skipBrowserRedirect: false,
+//       },
+//     });
+//
+//     if (error || !data.url) {
+//       throw new Error(error?.message ?? 'No se pudo iniciar sesión con Google.');
+//     }
+//
+//     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+//
+//     if (result.type === 'success') {
+//       const url = new URL(result.url);
+//       const accessToken = url.searchParams.get('#access_token') ?? url.searchParams.get('access_token');
+//       const refreshToken = url.searchParams.get('refresh_token');
+//
+//       if (accessToken) {
+//         const { data: sessionData, error: sessionError } = await authClient.auth.setSession({
+//           access_token: accessToken,
+//           refresh_token: refreshToken ?? '',
+//         });
+//
+//         if (sessionError || !sessionData.user) {
+//           throw new Error(sessionError?.message ?? 'No se pudo establecer la sesión.');
+//         }
+//
+//         return mapSupabaseUserToAppUser(sessionData.user);
+//       }
+//     }
+//
+//     throw new Error('Sesión cancelada.');
+//   } catch (error) {
+//     const message = error instanceof Error ? error.message : 'No se pudo iniciar sesión con Google.';
+//     throw new Error(message);
+//   }
+// };
+//
+// export const loginWithApple = async (): Promise<User> => {
+//   const authClient = getSupabaseAuthClient();
+//   const redirectUrl = AuthSession.makeRedirectUrl({
+//     path: '/auth/callback',
+//   });
+//
+//   try {
+//     const { data, error } = await authClient.auth.signInWithOAuth({
+//       provider: 'apple',
+//       options: {
+//         redirectTo: redirectUrl,
+//         skipBrowserRedirect: false,
+//       },
+//     });
+//
+//     if (error || !data.url) {
+//       throw new Error(error?.message ?? 'No se pudo iniciar sesión con Apple.');
+//     }
+//
+//     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+//
+//     if (result.type === 'success') {
+//       const url = new URL(result.url);
+//       const accessToken = url.searchParams.get('#access_token') ?? url.searchParams.get('access_token');
+//       const refreshToken = url.searchParams.get('refresh_token');
+//
+//       if (accessToken) {
+//         const { data: sessionData, error: sessionError } = await authClient.auth.setSession({
+//           access_token: accessToken,
+//           refresh_token: refreshToken ?? '',
+//         });
+//
+//         if (sessionError || !sessionData.user) {
+//           throw new Error(sessionError?.message ?? 'No se pudo establecer la sesión.');
+//         }
+//
+//         return mapSupabaseUserToAppUser(sessionData.user);
+//       }
+//     }
+//
+//     throw new Error('Sesión cancelada.');
+//   } catch (error) {
+//     const message = error instanceof Error ? error.message : 'No se pudo iniciar sesión con Apple.';
+//     throw new Error(message);
+//   }
+// };
 
 export const registerUser = async ({ name, email, password }: RegisterPayload): Promise<User> => {
   if (!name.trim() || !email.trim() || !password.trim()) {

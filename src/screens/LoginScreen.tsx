@@ -226,7 +226,7 @@ export const LoginScreen = ({ navigation }: Props) => {
           <View style={styles.modalOverlay}>
             <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowSocialModal(false)} />
             <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Estamos trabajando</Text>
+              <Text style={styles.modalTitle}>Próximamente</Text>
               <Text style={styles.modalMessage}>
                 El inicio de sesión con redes sociales estará disponible pronto. Por favor inicia con correo y contraseña.
               </Text>
