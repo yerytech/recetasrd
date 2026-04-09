@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,10 +18,10 @@ import {
 import { CategoryItem } from '../components/CategoryItem';
 import { CustomButton } from '../components/CustomButton';
 import { CustomInput } from '../components/CustomInput';
-import { LocationPickerModal } from '../components/LocationPickerModal';
 import { RECIPE_CATEGORIES } from '../constants/categories';
 import { COLORS, FONT_SIZE, LAYOUT, SPACING } from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
+import { useGetLocation } from '../hooks/useGetLocation';
 import { AppTabsParamList, RootStackParamList } from '../navigation/types';
 import { createRecipe, getRecipeById, updateRecipe, uploadRecipeImage } from '../services/supabase';
 import { Ingredient, LocationPoint } from '../types';
@@ -29,7 +30,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 type Props = BottomTabScreenProps<AppTabsParamList, 'AddTab'>;
 
 type EditableIngredient = Ingredient;
-type LocationTarget = 'ingredient' | null;
 
 interface LocationData {
   address: string;
@@ -69,6 +69,7 @@ const sanitizeIngredientLocations = (ingredients: EditableIngredient[]): Editabl
 
 export const AddRecetaScreen = ({ navigation, route }: Props) => {
   const { user } = useAuth();
+  const { getLocation, isLoading: isLocationLoading } = useGetLocation();
   const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
   const categories = useMemo(() => RECIPE_CATEGORIES.filter((category) => category !== 'Todas'), []);
   const recipeIdToEdit = route.params?.recipeId;
@@ -80,9 +81,6 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
   const [imageUrl, setImageUrl] = useState('');
   const [preparation, setPreparation] = useState('');
   const [ingredients, setIngredients] = useState<EditableIngredient[]>([buildNewIngredient()]);
-  const [locationModalVisible, setLocationModalVisible] = useState(false);
-  const [activeLocationTarget, setActiveLocationTarget] = useState<LocationTarget>(null);
-  const [activeIngredientId, setActiveIngredientId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
@@ -155,26 +153,44 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
     });
   };
 
-  const openIngredientLocationPicker = (ingredientId: string) => {
-    setActiveLocationTarget('ingredient');
-    setActiveIngredientId(ingredientId);
-    setLocationModalVisible(true);
+  const getAddressFromCoordinates = async (latitude: number, longitude: number): Promise<string> => {
+    try {
+      const geocode = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+
+      if (!geocode.length) {
+        return `Lat: ${latitude.toFixed(6)}, Lon: ${longitude.toFixed(6)}`;
+      }
+
+      const { name, street, city, region } = geocode[0];
+      const fullAddress = `${street || name || ''}, ${city || ''}, ${region || ''}`.replace(/^, |, $/g, '');
+      return fullAddress || `Lat: ${latitude.toFixed(6)}, Lon: ${longitude.toFixed(6)}`;
+    } catch {
+      return `Lat: ${latitude.toFixed(6)}, Lon: ${longitude.toFixed(6)}`;
+    }
   };
 
-  const handleSelectLocation = (locationData: LocationData) => {
-    if (activeLocationTarget === 'ingredient' && activeIngredientId) {
-      updateIngredientLocation(activeIngredientId, locationData);
+  const handleGetCurrentIngredientLocation = async (ingredientId: string) => {
+    const locationResult = await getLocation();
+
+    if (!locationResult.coords) {
+      const message = locationResult.errorMessage || 'No se pudo obtener la ubicación actual.';
+      Alert.alert('Ubicación', message);
+      return;
     }
 
-    setActiveIngredientId(null);
-    setActiveLocationTarget(null);
-    setLocationModalVisible(false);
-  };
+    const { latitude, longitude } = locationResult.coords;
+    const address = await getAddressFromCoordinates(latitude, longitude);
 
-  const handleCloseLocationModal = () => {
-    setLocationModalVisible(false);
-    setActiveIngredientId(null);
-    setActiveLocationTarget(null);
+    updateIngredientLocation(ingredientId, {
+      address,
+      coordinates: {
+        latitude,
+        longitude,
+      },
+    });
   };
 
   const loadRecipeToEdit = useCallback(async () => {
@@ -417,8 +433,15 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
             <View style={styles.ingredientLocationSection}>
               <Text style={styles.ingredientLocationLabel}>Ubicación de compra</Text>
               <Pressable
-                onPress={() => openIngredientLocationPicker(ingredient.id)}
-                style={[styles.locationButton, (ingredient.purchaseLocations?.length ?? 0) > 0 && styles.locationButtonActive]}
+                disabled={isLocationLoading}
+                onPress={() => {
+                  void handleGetCurrentIngredientLocation(ingredient.id);
+                }}
+                style={[
+                  styles.locationButton,
+                  (ingredient.purchaseLocations?.length ?? 0) > 0 && styles.locationButtonActive,
+                  isLocationLoading && styles.locationButtonDisabled,
+                ]}
               >
                 <Ionicons
                   name={(ingredient.purchaseLocations?.length ?? 0) > 0 ? 'location' : 'location-outline'}
@@ -431,9 +454,11 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
                     (ingredient.purchaseLocations?.length ?? 0) > 0 && styles.locationButtonTextActive,
                   ]}
                 >
-                  {(ingredient.purchaseLocations?.length ?? 0) > 0
+                  {isLocationLoading
+                    ? 'Cargando...'
+                    : (ingredient.purchaseLocations?.length ?? 0) > 0
                     ? `Agregar otra ubicación (${ingredient.purchaseLocations?.length ?? 0})`
-                    : 'Seleccionar ubicación'}
+                    : 'Seleccionar ubicación actual'}
                 </Text>
               </Pressable>
 
@@ -473,12 +498,6 @@ export const AddRecetaScreen = ({ navigation, route }: Props) => {
           loading={isSaving}
           onPress={handleSubmit}
           title={isEditMode ? 'Guardar cambios' : 'Guardar receta'}
-        />
-
-        <LocationPickerModal
-          onClose={handleCloseLocationModal}
-          onSelectLocation={handleSelectLocation}
-          visible={locationModalVisible}
         />
       </ScrollView>
     </SafeAreaView>
@@ -587,6 +606,9 @@ const styles = StyleSheet.create({
   locationButtonActive: {
     borderColor: COLORS.primary,
     backgroundColor: COLORS.softPrimary,
+  },
+  locationButtonDisabled: {
+    opacity: 0.65,
   },
   locationButtonText: {
     fontSize: FONT_SIZE.sm,
