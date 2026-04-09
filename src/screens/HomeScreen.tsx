@@ -1,5 +1,5 @@
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import { NavigationProp, useNavigation } from '@react-navigation/native';
+import { NavigationProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -26,7 +26,7 @@ type Props = BottomTabScreenProps<AppTabsParamList, 'HomeTab'>;
  * Home principal con datos de la base de datos.
  */
 export const HomeScreen = ({ navigation }: Props) => {
-  const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const rootNavigation = navigation.getParent<NavigationProp<RootStackParamList>>();
   const [search, setSearch] = useState('');
   const [popularPage, setPopularPage] = useState(1);
   const { recipes, isLoading, error, setSearch: setRecipeSearch } = useRecipes();
@@ -104,7 +104,7 @@ export const HomeScreen = ({ navigation }: Props) => {
     };
     
     const route = categoryMap[categoryName as keyof typeof categoryMap];
-    if (route) {
+    if (route && rootNavigation) {
       rootNavigation.navigate(route);
     }
   };
@@ -189,7 +189,7 @@ export const HomeScreen = ({ navigation }: Props) => {
                           <RecipeListItem
                             imageUrl={item.imageUrl}
                             isFavorite={false}
-                            onPress={() => rootNavigation.navigate('RecipeDetail', { recipeId: item.id })}
+                            onPress={() => rootNavigation?.navigate('RecipeDetail', { recipeId: item.id })}
                             rating={item.averageRating}
                             title={item.title}
                           />

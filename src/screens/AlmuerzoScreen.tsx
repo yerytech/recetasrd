@@ -12,13 +12,12 @@ import { getResponsiveColumns, getResponsiveMaxWidth } from '../utils/responsive
 
 export const AlmuerzoScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { recipes, isLoading, error } = useRecipes();
+  const { recipes, isLoading, error } = useRecipes({ initialCategory: 'Almuerzo' });
   const { width } = useWindowDimensions();
   const numColumns = getResponsiveColumns(width);
   const contentMaxWidth = getResponsiveMaxWidth(width, 640, 1200);
 
-  // Filtrar solo almuerzos
-  const almuerzos = recipes.filter(recipe => recipe.category === 'Almuerzo');
+  const almuerzos = recipes;
 
   const renderItem = ({ item }: any) => (
     <View style={styles.cardWrapper}>

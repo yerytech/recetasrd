@@ -12,13 +12,12 @@ import { getResponsiveColumns, getResponsiveMaxWidth } from '../utils/responsive
 
 export const PostresScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { recipes, isLoading, error } = useRecipes();
+  const { recipes, isLoading, error } = useRecipes({ initialCategory: 'Postres' });
   const { width } = useWindowDimensions();
   const numColumns = getResponsiveColumns(width);
   const contentMaxWidth = getResponsiveMaxWidth(width, 640, 1200);
 
-  // Filtrar solo postres
-  const postres = recipes.filter(recipe => recipe.category === 'Postres');
+  const postres = recipes;
 
   const renderItem = ({ item }: any) => (
     <View style={styles.cardWrapper}>

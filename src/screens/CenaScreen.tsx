@@ -12,13 +12,12 @@ import { getResponsiveColumns, getResponsiveMaxWidth } from '../utils/responsive
 
 export const CenaScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { recipes, isLoading, error } = useRecipes();
+  const { recipes, isLoading, error } = useRecipes({ initialCategory: 'Cena' });
   const { width } = useWindowDimensions();
   const numColumns = getResponsiveColumns(width);
   const contentMaxWidth = getResponsiveMaxWidth(width, 640, 1200);
 
-  // Filtrar solo cenas
-  const cenas = recipes.filter(recipe => recipe.category === 'Cena');
+  const cenas = recipes;
 
   const renderItem = ({ item }: any) => (
     <View style={styles.cardWrapper}>

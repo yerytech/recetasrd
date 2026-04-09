@@ -9,17 +9,37 @@ type RecipesFilter = {
   search: string;
 };
 
+type UseRecipesOptions = {
+  initialCategory?: string;
+};
+
 /**
  * Hook para consultar recetas con filtros de búsqueda y categoría.
  */
-export const useRecipes = () => {
+export const useRecipes = (options?: UseRecipesOptions) => {
+  const initialCategory = options?.initialCategory?.trim() || 'Todas';
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<RecipesFilter>({
-    category: 'Todas',
+    category: initialCategory,
     search: '',
   });
+
+  useEffect(() => {
+    const nextCategory = initialCategory;
+
+    setFilters((previous) => {
+      if (previous.category === nextCategory) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        category: nextCategory,
+      };
+    });
+  }, [initialCategory]);
 
   const refreshRecipes = useCallback(async () => {
     setIsLoading(true);
@@ -32,8 +52,9 @@ export const useRecipes = () => {
       });
 
       setRecipes(data);
-    } catch {
-      setError('No se pudieron cargar las recetas.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudieron cargar las recetas.';
+      setError(message);
       setRecipes([]);
     } finally {
       setIsLoading(false);

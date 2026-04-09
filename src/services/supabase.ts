@@ -60,6 +60,31 @@ let localRatings: Rating[] = [...MOCK_RATINGS];
 
 const generateId = (prefix: string): string => `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
+const getBlobFromUri = async (uri: string): Promise<Blob> => {
+  return await new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+
+    request.onload = () => {
+      const response = request.response;
+
+      if (response instanceof Blob) {
+        resolve(response);
+        return;
+      }
+
+      reject(new Error('No se pudo leer la imagen seleccionada.'));
+    };
+
+    request.onerror = () => {
+      reject(new Error('No se pudo leer la imagen seleccionada.'));
+    };
+
+    request.responseType = 'blob';
+    request.open('GET', uri, true);
+    request.send(null);
+  });
+};
+
 const normalizeIngredient = (ingredient: unknown, index: number): Ingredient => {
   if (typeof ingredient === 'string') {
     return {
@@ -187,6 +212,28 @@ const mapSupabaseUserToAppUser = (supabaseUser: SupabaseAuthUser, fallbackName?:
   };
 };
 
+const normalizeCategory = (value: string | undefined): string => {
+  if (!value) {
+    return '';
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  const categoryAliases: Record<string, string> = {
+    todas: 'todas',
+    desayuno: 'desayuno',
+    desayunos: 'desayuno',
+    almuerzo: 'almuerzo',
+    almuerzos: 'almuerzo',
+    cena: 'cena',
+    cenas: 'cena',
+    postre: 'postre',
+    postres: 'postre',
+  };
+
+  return categoryAliases[normalized] ?? normalized;
+};
+
 const applyRecipeFilters = (
   recipes: Recipe[],
   options?: {
@@ -196,9 +243,15 @@ const applyRecipeFilters = (
 ): Recipe[] => {
   const search = options?.search?.trim().toLowerCase() ?? '';
   const category = options?.category ?? 'Todas';
+  const normalizedCategory = normalizeCategory(category);
 
   return recipes.filter((recipe) => {
-    const categoryMatch = category === 'Todas' || recipe.category === category;
+    const normalizedRecipeCategory = normalizeCategory(recipe.category);
+    const categoryMatch =
+      normalizedCategory === 'todas' ||
+      normalizedRecipeCategory === normalizedCategory ||
+      normalizedRecipeCategory.includes(normalizedCategory) ||
+      normalizedCategory.includes(normalizedRecipeCategory);
     const searchMatch =
       !search || recipe.title.toLowerCase().includes(search) || recipe.category.toLowerCase().includes(search);
 
@@ -372,15 +425,15 @@ export const getRecipes = async (options?: { search?: string; category?: string 
     ]);
 
     if (commentsResult.error) {
-      throw commentsResult.error;
+      console.warn('[getRecipes] No se pudieron cargar comentarios:', commentsResult.error.message);
     }
 
     if (ratingsResult.error) {
-      throw ratingsResult.error;
+      console.warn('[getRecipes] No se pudieron cargar valoraciones:', ratingsResult.error.message);
     }
 
-    const comments = ((commentsResult.data ?? []) as CommentRow[]).map(mapCommentRow);
-    const ratings = ((ratingsResult.data ?? []) as RatingRow[]).map(mapRatingRow);
+    const comments = commentsResult.error ? [] : ((commentsResult.data ?? []) as CommentRow[]).map(mapCommentRow);
+    const ratings = ratingsResult.error ? [] : ((ratingsResult.data ?? []) as RatingRow[]).map(mapRatingRow);
 
     const recipes = typedRecipes.map((recipeRow) => {
       const recipeComments = comments.filter((comment) => comment.recipeId === recipeRow.id);
@@ -425,15 +478,15 @@ export const getRecipeById = async (recipeId: string): Promise<Recipe | null> =>
     ]);
 
     if (commentsResult.error) {
-      throw commentsResult.error;
+      console.warn('[getRecipeById] No se pudieron cargar comentarios:', commentsResult.error.message);
     }
 
     if (ratingsResult.error) {
-      throw ratingsResult.error;
+      console.warn('[getRecipeById] No se pudieron cargar valoraciones:', ratingsResult.error.message);
     }
 
-    const comments = ((commentsResult.data ?? []) as CommentRow[]).map(mapCommentRow);
-    const ratings = ((ratingsResult.data ?? []) as RatingRow[]).map(mapRatingRow);
+    const comments = commentsResult.error ? [] : ((commentsResult.data ?? []) as CommentRow[]).map(mapCommentRow);
+    const ratings = ratingsResult.error ? [] : ((ratingsResult.data ?? []) as RatingRow[]).map(mapRatingRow);
 
     return mapRecipeRow(recipeRow as RecipeRow, comments, ratings);
   } catch (error) {
@@ -770,8 +823,7 @@ export const uploadRecipeImage = async (imageUri: string, recipeId: string): Pro
       { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
     );
 
-    const fileResponse = await fetch(compressedResult.uri);
-    const fileBlob = await fileResponse.blob();
+    const fileBlob = await getBlobFromUri(compressedResult.uri);
 
     // Generar nombre único
     const fileName = `recipes/${recipeId}/image-${Date.now()}.jpg`;
@@ -885,8 +937,7 @@ export const uploadProfileAvatar = async (imageUri: string, userId: string): Pro
       { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
     );
 
-    const fileResponse = await fetch(compressedResult.uri);
-    const fileBlob = await fileResponse.blob();
+    const fileBlob = await getBlobFromUri(compressedResult.uri);
     const fileName = `avatars/${userId}/avatar-${Date.now()}.jpg`;
 
     const { error } = await supabase.storage
