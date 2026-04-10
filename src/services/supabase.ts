@@ -41,7 +41,8 @@ const PROFILE_AVATAR_BUCKET_CANDIDATES = [PROFILE_AVATAR_BUCKET, PROFILE_AVATAR_
 
 const env = (globalThis as EnvironmentLike).process?.env ?? {};
 const supabaseUrl = env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-const supabaseAnonKey = env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+const supabaseAnonKey = env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? ''
+;
 const passwordResetRedirectUrl = env.EXPO_PUBLIC_PASSWORD_RESET_REDIRECT_URL;
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
