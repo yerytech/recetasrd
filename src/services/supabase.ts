@@ -2,6 +2,7 @@ import 'react-native-url-polyfill/auto';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, User as SupabaseAuthUser } from '@supabase/supabase-js';
+import Constants from 'expo-constants';
 import * as ImageManipulator from 'expo-image-manipulator';
 // import * as WebBrowser from 'expo-web-browser';
 // import * as AuthSession from 'expo-auth-session';
@@ -15,6 +16,12 @@ type EnvironmentLike = {
   process?: {
     env?: Record<string, string | undefined>;
   };
+};
+
+type ExpoExtraConfig = {
+  supabaseUrl?: string;
+  supabaseAnonKey?: string;
+  passwordResetRedirectUrl?: string;
 };
 
 type RecipeLocation = LocationPoint;
@@ -39,11 +46,11 @@ const PROFILE_AVATAR_BUCKET = 'profile-avatar';
 const PROFILE_AVATAR_BUCKET_FALLBACK = 'profile-avatars';
 const PROFILE_AVATAR_BUCKET_CANDIDATES = [PROFILE_AVATAR_BUCKET, PROFILE_AVATAR_BUCKET_FALLBACK] as const;
 
+const expoExtra = (Constants.expoConfig?.extra ?? {}) as ExpoExtraConfig;
 const env = (globalThis as EnvironmentLike).process?.env ?? {};
-const supabaseUrl = env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-const supabaseAnonKey = env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? ''
-;
-const passwordResetRedirectUrl = env.EXPO_PUBLIC_PASSWORD_RESET_REDIRECT_URL;
+const supabaseUrl = env.EXPO_PUBLIC_SUPABASE_URL ?? expoExtra.supabaseUrl ?? '';
+const supabaseAnonKey = env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? expoExtra.supabaseAnonKey ?? '';
+const passwordResetRedirectUrl = env.EXPO_PUBLIC_PASSWORD_RESET_REDIRECT_URL ?? expoExtra.passwordResetRedirectUrl;
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -305,7 +312,7 @@ const applyRecipeFilters = (
 const getSupabaseAuthClient = () => {
   if (!supabase) {
     throw new Error(
-      'Autenticacion no disponible. Configura EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY en .env y reinicia la app.',
+      'Autenticacion no disponible. Configura EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY en .env, reinicia Expo y recompila la app si usas un build nativo.',
     );
   }
 
